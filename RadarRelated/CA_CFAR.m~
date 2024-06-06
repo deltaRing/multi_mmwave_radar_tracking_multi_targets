@@ -1,0 +1,21 @@
+% 单元平均恒虚警率检测器 
+% 输入1：MTD_result 动目标检测结果
+% 输入2：Pfa 恒虚警率
+% 输入3：P 保护单元
+% 输入4：R 参考单元
+% 输出1：detection_result 检测结果 3 x N (rr, vv, amp)
+% 输出2：detection_map 检测谱图
+function [detection_result, detection_map] = CA_CFAR(MTD_result, Pfa, P, R)
+    if nargin == 1
+        Pfa = 1e-2;
+        P = 4;
+        R = 6;
+    end
+    
+    detection_result = [];
+    detection_map = [];
+    
+    size_RR = size(MTD_result, 1); % 距离单元数目
+    size_VV = size(MTD_result, 2); % 速度da
+
+end

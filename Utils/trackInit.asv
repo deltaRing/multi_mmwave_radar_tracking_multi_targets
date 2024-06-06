@@ -1,0 +1,28 @@
+% TrackInit 跟踪航迹初始化
+% 输入1：位置信息 Posi
+% 输入2：速度信息 Velo
+% 输入3：时间
+% 输入4：起始帧标号 FrameIndex
+% 输出1：航迹结构体 Tracks
+function Tracks = trackInit(Posi, Velo, t, FrameIndex)
+    Tracks.t    = t;
+    Tracks.Posi = Posi;
+    Tracks.Velo = Velo;
+    Tracks.FrameIndex = FrameIndex;
+    if length(Posi) == 2
+        Tracks.Q = eye(4);    % 系统过程噪声协方差
+        Tracks.H = [1 0 0 0
+                    0 0 1 0]; % 观测矩阵
+        Tracks.F = [1 t 0 0;     % 状态转移矩阵
+                    0 1 0 0;
+                    0 0 1 t;
+                    0 0 0 1];
+        Tracks.R = diag([100 100]);  % 观测协方差矩阵
+    elseif length(Posi) == 3
+        Tracks.Q = eye(6);   % 系统过程噪声协方差
+    else
+        Tracks = [];
+        error('Track Initial: Not Support High Dimension');
+    end
+end
+

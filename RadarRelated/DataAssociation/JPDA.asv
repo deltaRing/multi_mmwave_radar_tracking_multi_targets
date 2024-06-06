@@ -1,0 +1,77 @@
+% 联合概率数据关联 （JPDA）
+% 输入1：跟踪航迹
+% 输入2：量测值 N x 4 / N x 6
+% 输入3：当前帧数
+% 输入4：当前时间步长
+% 输入4：Pd 检测概率
+% 输入5：正确量测落入跟踪门内的概率
+% 输入6：门限
+% 输入7：最大量测
+% 输出1：最新的跟踪航迹部分 Tracks
+function [Tracks] = JPDA(tracks, measurements, currentIndex, dt, ...
+                                    Pd, Pg, g_sigma, ...
+                                    lambda, max_measures)
+    if nargin == 4
+        Pd = 1;                    %检测概率
+        Pg = 0.99;                 %正确量测落入跟踪门内得概率
+        g_sigma = 9.21;            %门限,经验值，与R和Q有关，必须合理设置
+        lambda = 2;                                          
+        max_measures = 1000;       % 最大的量测值
+    end
+
+    gamma = lambda*10^(-6);  %每一个单位面积(km^2)内产生lambda个杂波 
+    Tracks = tracks;
+    target_Num = length(tracks);
+    if target_Num <= 0; return; end
+
+    nz = tracks(1).Nz; % 得到维度信息
+    S = zeros(nz, nz, target_Num); % 新息协方差矩阵
+    Z_pre = zeros(nz, target_Num); % 观测值预测
+    X_pre = zeros(nz, target_Num); % 状态值预测
+    ellipse_Volume = zeros(1, target_Num); % 椭圆门预测
+
+for tt = 1:target_Num
+    X_pre(:, tt) = tracks(tt).F * tracks(tt).X;
+    P_pre = tracks(tt).F * tracks(tt).P * tracks(tt).F' + ...
+            tracks(tt).Q;
+    Z_pre(:, tt) = tracks(tt).H * X_pre(:, tt);
+    S(:, :, tt) = tracks(tt).H * P_pre * tracks(tt).H' + ...
+                  tracks(tt).R; % https://blog.csdn.net/weixin_40106401/article/details/115921604
+    ellipse_Volume(tt) = pi * g_sigma * sqrt(det(S(:,:,tt)));     %每个目标计算椭圆跟踪门的面积  
+end
+
+valid_measurements = [];
+num_valid_measurements = 0;                                                                          %记录有效观测个数
+[dim, num] = size(measurements); %dim表示观测维度，num表示观测值的个数
+measure_confirm_matrix = zeros(max_measures, target_Num + 1);
+new_Tracks = [];
+new_Tracks_num = 0;
+
+%% 构建观测确认矩阵 Omega
+for tt = 1 : num %目标和杂波
+    flag = 0;   %观测值是否有效
+    for ttt = 1 : target_num %目标，也可以认为是存在的航迹。
+        delta_measurement = measurements(:, tt) - Z_prediction(:, ttt);  %测量值和预测值的误差值。
+        delta_measurement_cov = delta_measurement' / S(:, :, ttt) * delta_measurement; %通过每个目标测量噪声的协方差矩阵，得到y1(杂波或者目标)与Z_predic(目标)相似程度。                      
+        if delta_measurement_cov <= g_sigma                                                    
+            flag = 1;
+                    measure_confirm_matrix(num_valid_measurements + 1, 1) = 1; %确认矩阵每一行第一个元素必定为1。
+                    measure_confirm_matrix(num_valid_measurements + 1, ttt+1) = 1; %如果在门限范围内设置为1
+                else
+                    new_Tracks_num = new_Tracks_num + 1;
+                    if nz == 2
+                    new_Tracks(new_Tracks_num) = trackInit();
+                    elseif nz == 3
+                    new_Tracks(new_Tracks_num) = trackInit();
+                    else
+                        error('JPDA: Not Support this dimension')
+                    end
+                end
+            end  %% 也就是这两层循环会产生确认矩阵的爆炸，因为在下一帧循环的时候，该目标c即为当前帧得到的所有航迹
+            if flag == 1   %该检测目标不论是和哪个目标观测上了，都记录下来。
+                valid_measurements = [valid_measurements current_measurements(:, tt)];                                           %把落入跟踪门中的所有回波放入y中
+                num_valid_measurements = num_valid_measurements + 1;                                                            %记录有效观测个数
+            end
+        end
+
+end

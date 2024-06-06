@@ -1,0 +1,32 @@
+% 获取事件
+% 获取JPDA关联事件
+% 输入1：
+% 输入2：
+% 输出1：
+%
+function interconnect_matrix = GetEvents(measure_confirm_matrix, max_events)
+    size_measures = size(measure_confirm_matrix, 1);
+    size_targets  = size(measure_confirm_matrix, 2);
+    interconnect_matrix = zeros(size_measures, size_targets, max_events);
+    
+    if size_measures ~= 0
+        event_num = 0;
+        vectors = {};
+        % 拆解向量
+        for mm = 1:size_measures
+            index = find(measure_confirm_matrix(mm, :) == 1);
+            for tt = 1:length(index)
+                vectors{mm}{tt} = zeros(1, size_targets); % 每组测量值组合为不同的向量
+                vectors{mm}{tt}(index(tt)) = 1;
+            end
+        end
+        
+        for mm = 1:size_measures
+
+
+        end
+    
+    else
+        return
+    end
+end
