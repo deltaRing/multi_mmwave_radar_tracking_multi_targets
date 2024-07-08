@@ -1,13 +1,13 @@
-% ÀûÓÃ·ÂÕæÀ×´ïÉú³ÉÄ¿±ê
-% ÊäÈë1£º·ÂÕæÀ×´ï 
-% ÊäÈë2£º·ÂÕæÄ¿±ê
-% ÊäÈë3£ºµ±Ç°Ê±¼ä
-% ÊäÈë4£º¿ªÆô¼ÙÄ¿±ê
-% ÊäÈë5£º¼ÙÄ¿±êÆ½¾ùÊýÄ¿
-% ÊäÈë6£º¼ÙÄ¿±êÆ½¾ùÆ«²îÖµ
-% ÊäÈë7£º¼ÙÄ¿±êÆ½¾ùËÙ¶ÈÖµ
-% Êä³ö1£ºÉú³ÉµÄ¼ÙÄ¿±ê
-% Êä³ö2£º¼ÙÄ¿±êËÙ¶È
+% åˆ©ç”¨ä»¿çœŸé›·è¾¾ç”Ÿæˆç›®æ ‡
+% è¾“å…¥1ï¼šä»¿çœŸé›·è¾¾ 
+% è¾“å…¥2ï¼šä»¿çœŸç›®æ ‡
+% è¾“å…¥3ï¼šå½“å‰æ—¶é—´
+% è¾“å…¥4ï¼šå¼€å¯å‡ç›®æ ‡
+% è¾“å…¥5ï¼šå‡ç›®æ ‡å¹³å‡æ•°ç›®
+% è¾“å…¥6ï¼šå‡ç›®æ ‡å¹³å‡åå·®å€¼
+% è¾“å…¥7ï¼šå‡ç›®æ ‡å¹³å‡é€Ÿåº¦å€¼
+% è¾“å‡º1ï¼šç”Ÿæˆçš„å‡ç›®æ ‡
+% è¾“å‡º2ï¼šå‡ç›®æ ‡é€Ÿåº¦
 function [GeneratedTargets, GeneratedTargetsVelo] = GenerateTarget(Radars, Targets, time, ...
     fakeTargetEnable, fakeTargetAveageNum, fakeTargetSigma, fakeTargetVeloSigma)
 if nargin == 3
@@ -27,8 +27,8 @@ GeneratedTargetsVelo = {};
         radarLoc         = radarInitLoc + radarVelo * time;
         radarAngle       = -radar.yaw;
         rotMatrix        = rotz(radarAngle / pi * 180); 
-        detectTarget     = {};     % ¶¨Î»Ä¿±ê
-        detectTargetVelo = {}; % ¶¨Î»ËÙ¶È
+        detectTarget     = {};     % å®šä½ç›®æ ‡
+        detectTargetVelo = {}; % å®šä½é€Ÿåº¦
         for tt = 1:length(Targets)
             target        = Targets{tt};
             targetInitLoc = [target.x target.y];
@@ -37,23 +37,17 @@ GeneratedTargetsVelo = {};
             deltaLoc      = targetLoc - radarLoc;
             deltaLoc      = rotMatrix(1:2, 1:2) * deltaLoc';
             deltaAngle    = atan2(deltaLoc(2), deltaLoc(1));
-            deltaVelo     = norm(targetVelo) * cos(atan2(targetVelo(2), targetVelo(1)) + radarAngle);
+            deltaVelo     = norm(targetVelo) * cos(atan2(target.vy, target.vx) + radarAngle);
             if abs(deltaAngle) > radar.sYaw / 2
-                continue; % ÎÞ·¨Ì½²â
+                continue; % æ— æ³•æŽ¢æµ‹
             end
             if norm(deltaLoc) > radar.sRange
-                continue; % ÎÞ·¨Ì½²â
+                continue; % æ— æ³•æŽ¢æµ‹
             end
-            if norm(deltaVelo) < 1
-                continue; % ÎÞ·¨Ì½²â
-            end
-
             detectTarget{end + 1} = ...
                 deltaLoc + randn(size(deltaLoc)) * radar.MeasureError;
             detectTargetVelo{end + 1} = ...
                 deltaVelo + randn([1, 1]) * radar.MeasureErrorVelo;
-            % detectTargetVelo{end + 1} = ...
-            %     targetVelo;
             if fakeTargetEnable
                 for ii = 1:randi(fakeTargetAveageNum)
                     detectTarget{end + 1} = ...
@@ -71,4 +65,4 @@ GeneratedTargetsVelo = {};
 
 end
 
-% Õý½Ç¶ÈÊÇÄæÊ±ÕëÐý×ª
+% æ­£è§’åº¦æ˜¯é€†æ—¶é’ˆæ—‹è½¬

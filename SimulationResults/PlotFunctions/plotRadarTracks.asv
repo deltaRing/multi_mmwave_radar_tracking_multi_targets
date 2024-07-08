@@ -1,8 +1,8 @@
-% »æÖÆÀ×´ïº½¼£
-% ÊäÈë1£ºTracks À×´ïº½¼£
-% ÊäÈë2£ºID º½¼£ÊıÄ¿
-% ÊäÈë3£ºfigureIndex Í¼ÏñË÷Òı
-% ÎŞÊä³ö
+% ç»˜åˆ¶é›·è¾¾èˆªè¿¹
+% è¾“å…¥1ï¼šTracks é›·è¾¾èˆªè¿¹
+% è¾“å…¥2ï¼šID èˆªè¿¹æ•°ç›®
+% è¾“å…¥3ï¼šfigureIndex å›¾åƒç´¢å¼•
+% æ— è¾“å‡º
 function plotRadarTracks(Tracks, ID, figureIndex)
     if nargin == 2, figureIndex = 10000; end
     
@@ -19,7 +19,7 @@ function plotRadarTracks(Tracks, ID, figureIndex)
             else
                 for target_index = 1:length(Tracks{ff})
                     if isempty(Tracks{ff}{target_index}), continue; end
-                    if Tracks{ff}{target_index}(1) == tt && Tracks{ff}{target_index}(4) == 1 % ¶ÔÃ¿¸öID½øĞĞ¼ì²â
+                    if Tracks{ff}{target_index}(1) == tt && Tracks{ff}{target_index}(4) ~=  % å¯¹æ¯ä¸ªIDè¿›è¡Œæ£€æµ‹
                         plot_target = [plot_target; Tracks{ff}{target_index}(2:end)];
                     end
                 end

@@ -1,0 +1,181 @@
+% 标注数据
+%% Radar联合工作程序
+clear all; close all;
+addpath Utils
+addpath RadarRelated
+addpath RadarRelated/TrackUtils
+addpath RadarRelated/DataProcessing
+addpath RadarRelated/DataAssociation
+addpath RadarRelated/SignalProcessing
+addpath LocationOptimal
+addpath LocationOptimal/Estimate
+addpath SimulationResults
+addpath SimulationResults/GeometryTransform
+addpath SimulationResults/PlotFunctions
+
+radarInit;
+warning off
+
+fid = []; 
+sdata = {};  
+fnumber = Radar(1).fnumber;
+dt  = 0.1;
+
+Tracks = {};
+TracksRecord = {};
+ID = 1;
+deltaStep = 5;
+Nz = 2;
+
+for rr = 1:Net_RadarNum
+    fid(rr) = fopen(Radar(rr).fname,'rb');
+    if fid(rr) == -1
+        error('Main Program: File Not Found')
+    end
+    sdata{rr} = fread(fid(rr),'int16');
+    if fnumber ~= Radar(rr).fnumber
+        error('Main Program: frame numbers are not unified') 
+    end
+end
+% 读取数据
+
+xxx_1 = []; xxx_2 = [];
+yyy_1 = []; yyy_2 = [];
+singleMeasures = {};
+for rr = Net_RadarNum:-1:1
+    for xx = 1:fnumber - 1
+        n_samples = Radar(radar).RadarParam.n_samples;
+        n_chirps  = Radar(radar).RadarParam.n_chirps;
+        n_RX      = Radar(radar).FFTParam.n_RX;
+        n_TX      = Radar(radar).FFTParam.n_TX;
+        
+        sdata2 = sdata{rr}((xx-1) * ...
+            n_samples * ...
+            n_chirps * ...
+            n_RX * ...
+            n_TX * 2 + ...
+            1:xx * n_samples * ...
+            n_chirps * ... 
+            n_RX * ...
+            n_TX * 2);
+        
+        fileSize = size(sdata2, 1);
+        lvds_data = zeros(1, fileSize/2);
+        count = 1;
+        for i=1:4:fileSize-5
+           lvds_data(1,count) =1i* sdata2(i) + sdata2(i+2); 
+           lvds_data(1,count+1) =1i* sdata2(i+1)+sdata2(i+3); 
+           count = count + 2;
+        end
+        lvds_data = reshape(lvds_data, n_TX * ...
+                            n_samples * n_RX, ...
+                            n_chirps);
+
+        t_lvds_data = [];
+        for tr = 1:n_TX * n_RX
+            t_lvds_data(tr, :, :) = lvds_data((tr - 1) * n_samples+1:tr * n_samples, :);
+        end
+        
+        for ttxx = 1:n_TX
+            data_radar_1 = squeeze(t_lvds_data(ttxx * n_RX - 3, :, :));   %RX1
+            data_radar_2 = squeeze(t_lvds_data(ttxx * n_RX - 2, :, :));   %RX2
+            data_radar_3 = squeeze(t_lvds_data(ttxx * n_RX - 1, :, :));   %RX3
+            data_radar_4 = squeeze(t_lvds_data(ttxx * n_RX, :, :));       %RX4
+
+            data_radar((ttxx - 1) * n_RX + 1, :, :) = data_radar_1;
+            data_radar((ttxx - 1) * n_RX + 2, :, :) = data_radar_2;
+            data_radar((ttxx - 1) * n_RX + 3, :, :) = data_radar_3;
+            data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
+        end
+        
+        % 执行MTI
+        for cc = 1: n_TX * n_RX
+            data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
+        end
+        
+        % 得到距离像
+        for cc = 1: n_TX * n_RX
+            RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
+        end
+        
+        % 进一步执行 MTD
+        MotionTargetDetection = [];
+        for cc = 1: n_TX * n_RX
+            MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
+            if isempty(MotionTargetDetection), MotionTargetDetection = abs(MotionTargetDetection_(cc, :, :));
+            else MotionTargetDetection = MotionTargetDetection + abs(MotionTargetDetection_(cc, :, :)); end 
+        end
+        
+        % 执行CA-CFAR
+        [detect_map, detect_result, detect_threshold] = ...
+                                            CA_CFAR(squeeze(MotionTargetDetection));
+                                        
+         % 执行角度FFT
+        azMap = [];
+
+        if Radar(rr).Type == "1843"
+            for cc = 1: n_TX
+            RangeProfiles(1, :, :) = RangeProfile_((cc - 1) * n_RX + 1, :, :);
+            RangeProfiles(2, :, :) = RangeProfile_((cc - 1) * n_RX + 2, :, :);
+            RangeProfiles(3, :, :) = RangeProfile_((cc - 1) * n_RX + 3, :, :);
+            RangeProfiles(4, :, :) = RangeProfile_((cc - 1) * n_RX + 4, :, :);
+            for chirps = 1:size(RangeProfiles, 3)
+                RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
+                AngleMap      = fft(RangeProfiles_.', Q, 2);
+                if isempty(azMap), azMap = abs(AngleMap);
+                else azMap = azMap + abs(AngleMap); end
+            end
+            clear RangeProfiles
+            end
+        else
+            Antenna_index = [1 4 5 8; 2 3 6 7];
+            for cc = 1: n_TX
+            RangeProfiles(1, :, :) = RangeProfile_(Antenna_index(cc, 1), :, :);
+            RangeProfiles(2, :, :) = RangeProfile_(Antenna_index(cc, 2), :, :);
+            RangeProfiles(3, :, :) = RangeProfile_(Antenna_index(cc, 3), :, :);
+            RangeProfiles(4, :, :) = RangeProfile_(Antenna_index(cc, 4), :, :);
+            for chirps = 1:size(RangeProfiles, 3)
+                RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
+                AngleMap      = fft(RangeProfiles_.', Q, 2);
+                if isempty(azMap), azMap = abs(AngleMap);
+                else azMap = azMap + abs(AngleMap); end
+            end
+            clear RangeProfiles
+            end
+        end
+
+        azMap = fftshift(azMap, 2);
+        [a, r] = getMouseClickCoordinates(azMap, ...
+            Radar(rr).ProcessParam.range_axis, ...
+            Radar(rr).ProcessParam.an_axis_az);
+
+        if isempty(r)
+            xxxx = [];
+            yyyy = [];
+            velo = [];
+        else
+            xxxx = [];
+            yyyy = [];
+            for aaa = 1:length(r) 
+                radarLoc = Radar(rr).Geometry.Location;
+
+                xxxx = [xxxx r .* sin(a) + radarLoc(1)];
+                yyyy = [yyyy r .* cos(a) + radarLoc(2)];
+            end
+        end
+        % 转换为世界坐标系
+        if rr == 1
+            xxx_1 = [xxx_1 xxxx];
+            yyy_1 = [yyy_1 yyyy];
+        else
+            xxx_2 = [xxx_2 xxxx];
+            yyy_2 = [yyy_2 yyyy];
+        end
+        figure(10003)
+        scatter(xxx_1, yyy_1, 5, 'filled', 'b');
+        hold on
+        scatter(xxx_2, yyy_2, 5, 'filled', 'g');
+        axis([-10 10 -1 20])
+    end
+    return
+end

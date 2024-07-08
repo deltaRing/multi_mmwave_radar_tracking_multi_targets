@@ -12,8 +12,8 @@ function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID)
     Tracks.FrameIndex = FrameIndex;
     Tracks.ObservedFrame = 1; % 观测次数
     Tracks.LossFrame = 0;     % 丢失次数
-    Tracks.LossFrameMax = 10; % 丢失上限
-    Tracks.ConfirmMax   = 5;  % 至少需要观测多少次数
+    Tracks.LossFrameMax = 10; % 丢失上限 Single: 10
+    Tracks.ConfirmMax   = 5;  % 至少需要观测多少次数 Single:5
     Tracks.Type = 0;          % 0：临时航迹 1：确认航迹 2：删除航迹
     Tracks.ID   = ID;
     if length(Posi) == 2
@@ -28,8 +28,8 @@ function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID)
                     0 1 0 0;
                     0 0 1 t;
                     0 0 0 1];
-        Tracks.R = diag([1 100 1 100]);         % 观测协方差矩阵
-        Tracks.P = diag([1 100 1 100]); % 协方差矩阵
+        Tracks.R = diag([1 1 1 1]);         % 观测协方差矩阵
+        Tracks.P = diag([1 1 1 1]); % 协方差矩阵
     elseif length(Posi) == 3
         Tracks.Nz = 3; % 维度
         Tracks.X = [Posi(1) Velo(1) Posi(2) Velo(2) Posi(3) Velo(3)]';
@@ -47,7 +47,7 @@ function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID)
                     0 0 0 0 1 t;
                     0 0 0 0 0 1];
         Tracks.R = diag([1 100 1 100 1 100]);             % 观测协方差矩阵
-        Tracks.P = diag([100 1 100 1 100 1]); % 协方差矩阵
+        Tracks.P = diag([1 100 1 100 1 100]); % 协方差矩阵
     else
         Tracks = [];
         error('Track Initial: Not Support High Dimension');

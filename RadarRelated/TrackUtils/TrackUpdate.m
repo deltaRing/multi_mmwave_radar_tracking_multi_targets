@@ -10,7 +10,7 @@ function [Track] = TrackUpdate(Tracks, observed)
                 Tracks{tt}.LossFrame = 0; % 丢失航迹数清零
                 Tracks{tt}.ObservedFrame = Tracks{tt}.ObservedFrame + 1; % 观测数自增
                 if Tracks{tt}.ObservedFrame >= Tracks{tt}.ConfirmMax
-                    Tracks{tt}.type = 1; % 航迹确认
+                    Tracks{tt}.Type = 1; % 航迹确认
                 end
             elseif Tracks{tt}.Type == 1 % 确认航迹
                 Tracks{tt}.LossFrame = 0; % 丢失航迹数清零
@@ -27,7 +27,6 @@ function [Track] = TrackUpdate(Tracks, observed)
             end
         end
     end
-    % CETC 无时无刻都在压榨我
     if ~isempty(delete_index), Tracks(delete_index) = []; end
     Track = Tracks;
 end

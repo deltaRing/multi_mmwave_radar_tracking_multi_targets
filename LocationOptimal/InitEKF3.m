@@ -5,23 +5,22 @@
 % 输入4：Xn 原来的状态 
 % 输入5：Pn 原来的协方差
 % 可选输入1：EKF2 使用2维 还是 3维的EKF
-% 输出1：Xn 状态
-% 输出2：Pn 协方差
-function [Xn, Pn] = InitEKF3(Posi, Velo, Xn, Pn, EKF2)
-    if nargin == 5
-        EKF2 = 0;
-    end
-    initNum = length(Pn);
-    for ii = 1:length(Posi)
+% 输出1：Tracks
+% 输出2：ID
+function [Tracks, ID] = InitEKF3(Tracks, Posi, Velo, EKF2, ID)
+    TarNum = size(Velo, 1);
+    for tt = 1:TarNum
         if ~EKF2
-            Xn = [Xn; Posi{ii}(1) Velo{ii}(1) ...
-                        Posi{ii}(2) Velo{ii}(2) ...
-                        Posi{ii}(3) Velo{ii}(3)];
-            Pn{initNum + ii} = eye(6);
+            Tracks{end + 1}.Xn = [Posi{tt}(1) Velo(tt, 1) ...
+                            Posi{tt}(2) Velo(tt, 2) ...
+                            Posi{tt}(3) Velo(tt, 3)];
+            Tracks{end + 1}.Pn = eye(6);
         else
-            Xn = [Xn; Posi{ii}(1) Velo{ii}(1) ...
-                        Posi{ii}(2) Velo{ii}(2)];
-            Pn{initNum + ii} = eye(4);
+            Tracks{end + 1}.Xn = [Posi{tt}(1) Velo(tt, 1) ...
+                            Posi{tt}(2) Velo(tt, 2)];
+            Tracks{end + 1}.Pn = eye(4);
         end
-    end
+        Tracks{end + 1}.ID = ID;
+        ID = ID + 1;
+    end    
 end

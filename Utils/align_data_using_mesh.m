@@ -1,0 +1,62 @@
+% Using mesh 3d to re-label the data
+% Input 1:AzMap,
+% Input 2:labelPos:manual label
+% Input 3:ComputePos: from CFAR process
+% Input 4:RangeAxis:
+% Input 5:AngleAxis:
+% Input 6:FigureIndex
+% Output 1:newPos
+%
+function newPos = align_data_using_mesh(AzMap, labelPos, ComputePos,...
+                                    range_axis, angle_axis, FigureIndex)
+    expand_angle = 10;
+    expand_range = 2;
+    newPos = labelPos;
+    figure(FigureIndex)
+    while 1
+        imagesc(angle_axis, range_axis, db(AzMap));
+        hold on
+        if ~isempty(ComputePos)
+            scatter(ComputePos(:,2), ComputePos(:,1), 300, 'w', 'x');
+        end
+        scatter(newPos(2), newPos(1), 200, 'r', 'x');
+        w = waitforbuttonpress;
+        if w == 0
+            point = get(gca, 'CurrentPoint');
+            newPos(2) = point(1, 1);
+            newPos(1) = point(1, 2);
+
+            % [rangeIndex, angleIndex] = ...
+            %     getIndex(newPos, range_axis, angle_axis);
+            % PosRStart = rangeIndex - expand_range;
+            % PosREnd   = rangeIndex + expand_range;
+            % PosAStart = angleIndex - expand_angle;
+            % PosAEnd   = angleIndex + expand_angle;
+            % if PosRStart < 1, PosRStart = 1; end
+            % if PosAStart < 1, PosAStart = 1; end
+            % if PosREnd > length(range_axis), PosREnd = length(range_axis); end
+            % if PosAEnd > length(angle_axis), PosAEnd = length(angle_axis); end
+            % currentValue = abs(AzMap(rangeIndex, angleIndex));
+            % for rr = PosRStart:PosREnd
+            %     for aa = PosAStart:PosAEnd
+            %         if currentValue < abs(AzMap(rr, aa))
+            %             currentValue = abs(AzMap(rr, aa));
+            %             newPos(2) = angle_axis(aa);
+            %             newPos(1) = range_axis(rr);
+            %         end
+            %     end
+            % end
+        else 
+            break
+        end
+    end
+end
+
+function [rangeIndex, angleIndex] = getIndex(newPos, range_axis, angle_axis)
+    rangeIndex = -1;
+    angleIndex = -1;
+    diff_range = abs(newPos(1) - range_axis);
+    diff_angle = abs(newPos(2) - angle_axis);
+    [~, rangeIndex] = min(diff_range);
+    [~, angleIndex] = min(diff_angle);
+end

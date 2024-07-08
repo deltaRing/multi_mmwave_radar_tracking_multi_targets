@@ -11,7 +11,7 @@ function range_angle_map = MVDR(range_profile_tx, SpaceNum, f0)
     warning('off')
     
     if length(size(range_profile_tx)) == 3
-        range_profile_tx = squeeze(range_profile_tx(:,:,1));    % 只读取一部分数据
+        range_profile_tx = squeeze(range_profile_tx(:,:,1)).';    % 只读取一部分数据
     else
         range_angle_map = [];
         error('MVDR: Need Multi-Channel Data')
@@ -35,5 +35,7 @@ function range_angle_map = MVDR(range_profile_tx, SpaceNum, f0)
         end
         range_angle_map = [range_angle_map; B];  % 计算功率谱
     end
-    range_angle_map = db(range_angle_map);
+    
+    range_angle_map = 20*log10(abs(range_angle_map)/ max(max(abs(range_angle_map))));
+    % range_angle_map = db(range_angle_map);
 end

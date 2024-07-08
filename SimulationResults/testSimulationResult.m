@@ -1,26 +1,30 @@
+% For Test JPDA
 addpath PlotFunctions
 addpath GeometryTransform
 addpath ../Utils
 addpath ../RadarRelated/DataAssociation
 addpath ../RadarRelated/TrackUtils
+addpath ../LocationOptimal
+addpath ../LocationOptimal/Estimate
 
 clear all
 
 % 测试模拟环境生成
 %% 雷达参数
-radarLoc = [80 90; 100 50; 30 80; -10 0];
+radarLoc = [80 90; 100 -10; 10 100; -10 0];
 radarVelo = [0 0; 0 0; 0 0; 0 0];
 radarAttitude = [0 0 -pi; 0 0 pi / 2; 0 0 -pi / 4; 0 0 0];
-radarSearchAngle = [pi / 2; pi / 2; pi / 2; pi / 2];
-radarSearchRange = [100; 75; 100; 125];
-radarQ  = [0.5; 0.5; 0.5; 0.5];
-radarvQ = [0.25; 0.25; 0.25; 0.25];
+radarSearchAngle = [ 2 * pi / 3; 2 * pi / 3; 2 * pi / 3; 2 * pi / 3];
+radarSearchRange = [100; 150; 125; 125];
+radarQ  = [0.05; 0.05; 0.05; 0.05];
+radarvQ = [0.025; 0.025; 0.025; 0.025];
 radarNum = 4;
 
 %% 目标参数
 targetLoc = [10 10; 10 100; 100 10];
 targetVelo = [5 2.5; 2 -4.5; -5 3.5];
-targetQ = [0.25; 0.35; 0.15];
+targetQ = [0.025; 0.035; 0.015];
+targetType = [0; 1; 0];
 targetNum = 3;
 Nz = 2;
 
@@ -35,15 +39,19 @@ target = {};
 for tt = 1:targetNum
     target{tt} = Targetsim(targetLoc(tt, :), ...
         targetVelo(tt, :), ...
-        targetQ(tt, :), Nz);
+        targetQ(tt, :), Nz, targetType(tt));
 end
 
 %% 定义帧数和步长
-frames = 350;
+frames = 200;
 dt = 0.1;
 Tracks = {};
 TracksRecord = {};
 ID = 1;
+
+%%
+singleMeasures = {};
+Error = {};
 
 for ff = 1:frames
     [dTargets, vTargets] = GenerateSimulationResults(radar, target, ff, dt);
@@ -54,6 +62,7 @@ for ff = 1:frames
         
         
     else
+        
         if isempty(Tracks)
             % 无航迹
             ddTargets = {}; dvTargets = {};
@@ -78,19 +87,21 @@ for ff = 1:frames
 
             for rrr = 1:length(dTargets)
                 for ttt = 1:length(dTargets{rrr})
-                    weights = rand(size(dTargets{rrr}{ttt}));
+                    %weights = rand(size(dTargets{rrr}{ttt}));
+                    weights = zeros(size(dTargets{rrr}{ttt}));
                     % 获取雷达位置
                     radarPos = radarLoc(rrr, :);
                     radarYaw = -radarAttitude(rrr, 3);
                     rotMatrix  = rotz(radarYaw / pi * 180); 
                     rotMatrix  = rotMatrix(1:2, 1:2);
                     if length(dTargets{rrr}{ttt}) == 2
-                        
                         ddTargets = rotMatrix' * dTargets{rrr}{ttt} + radarPos';
-                        
                         measures(:,size(measures, 2) + 1) = ...
                             [ddTargets(1); vTargets{rrr}{ttt} * weights(1); ...
                             ddTargets(2); vTargets{rrr}{ttt} * weights(2)];
+                        % measures(:,size(measures, 2) + 1) = ...
+                        %     [ddTargets(1); vTargets{rrr}{ttt}(1); ...
+                        %     ddTargets(2); vTargets{rrr}{ttt}(2)];
                     elseif length(dTargets{rrr}{ttt}) == 3
                         measures(:,size(measures, 2) + 1) = ...
                             [dTargets{rrr}{ttt}(1); vTargets{rrr}{ttt} * weights(1); ...
@@ -102,11 +113,9 @@ for ff = 1:frames
                 end
             end
             
-            [newTracks, observed, empty_measurements] = JPDA(Tracks, measures);
-            
-            % 估计速度
-            %newTracks = VeloUpdate(newTracks, Tracks, observed); % 不好用 %
-            %错误容易导致估计
+            [newTracks, observed, empty_measurements, observed_data] = JPDA(Tracks, measures);
+
+            Error = plotErrorCurve(newTracks, observed_data, 10001, Error, ff);
             
             % 更新航迹
             newTracks = TrackUpdate(newTracks, observed);
@@ -131,7 +140,8 @@ for ff = 1:frames
             TrackIndex = 1;
             for ii = 1:ID - 1
                 if TrackIndex <= length(Tracks) && Tracks{TrackIndex}.ID == ii
-                    TracksRecord{ff}{ii} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) Tracks{TrackIndex}.X(3)]; % 记录Tracks
+                    TracksRecord{ff}{ii} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) ...
+                        Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % 记录Tracks
                     TrackIndex = TrackIndex + 1;
                 else
                     TracksRecord{ff}{ii} = [];

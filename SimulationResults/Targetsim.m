@@ -5,7 +5,7 @@
 % (if 2 dimension then Q = 4)
 % (if 3 dimension then Q = 6)
 % 输入4：雷达数据维度
-function simtarget = Targetsim(Locations, Velos, Q, Nz)
+function simtarget = Targetsim(Locations, Velos, Q, Nz, MotionType)
     if length(Locations) == 3
         simtarget.x = Locations(1);
         simtarget.y = Locations(2);
@@ -22,12 +22,19 @@ function simtarget = Targetsim(Locations, Velos, Q, Nz)
         simtarget.y = Velos(2);
         simtarget.z = Velos(3);
     elseif length(Velos) == 2
-        simtarget.vx = Velos(1);
-        simtarget.vy = Velos(2);
+        if MotionType == 0
+            simtarget.vx = @(x) Velos(1);
+            simtarget.vy = @(x) Velos(2);
+        else
+            Velo = norm(Velos);
+            simtarget.vx = @(x) Velos(1);
+            simtarget.vy = @(x) Velos(2) + min([6, 0.25 * x]);
+        end
     else
         error('Radar Sim Initialize: Not Support This Velocity')
     end
     
     simtarget.Q = Q;
     simtarget.Dimension = Nz;
+    simtarget.CircleMotion = MotionType;
 end

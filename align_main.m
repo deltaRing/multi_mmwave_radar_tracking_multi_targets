@@ -1,0 +1,210 @@
+% align_main
+clear all; close all;
+
+radarFile = ["./RadarFiles/data1/2024-06-20-21-55-36.bin", "./RadarFiles/data2/2024-06-20-21-47-44.bin";
+    "./RadarFiles/data1/2024-06-20-21-57-27.bin", "./RadarFiles/data2/2024-06-20-21-49-35.bin";
+    "./RadarFiles/data1/2024-06-20-22-02-21.bin", "./RadarFiles/data2/2024-06-20-21-54-29.bin";
+    "./RadarFiles/data1/2024-06-20-22-03-48.bin", "./RadarFiles/data2/2024-06-20-21-55-57.bin";
+    "./RadarFiles/data1/2024-06-20-22-05-43.bin", "./RadarFiles/data2/2024-06-20-21-57-51.bin";
+    "./RadarFiles/data1/2024-06-20-22-13-20.bin", "./RadarFiles/data2/2024-06-20-22-05-28.bin";
+    "./RadarFiles/data1/2024-06-20-22-22-06.bin", "./RadarFiles/data2/2024-06-20-22-14-15.bin";
+    "./RadarFiles/data1/2024-06-20-22-25-20.bin", "./RadarFiles/data2/2024-06-20-22-17-29.bin";];
+
+file_name = ["./RadarFiles/label2.mat", "./RadarFiles/label2_2.mat";
+    "./RadarFiles/label3.mat", "./RadarFiles/label3_2.mat";
+    "./RadarFiles/label4.mat", "./RadarFiles/label4_2.mat";
+    "./RadarFiles/label5.mat", "./RadarFiles/label5_2.mat";
+    "./RadarFiles/label6.mat", "./RadarFiles/label6_2.mat";
+    "./RadarFiles/label7.mat", "./RadarFiles/label7_2.mat";
+    "./RadarFiles/label8.mat", "./RadarFiles/label8_2.mat";
+    "./RadarFiles/label9.mat", "./RadarFiles/label9_2.mat";
+    ];
+
+new_file_name = ["./RadarFiles/new_label2.mat", "./RadarFiles/new_label2_2.mat";
+    "./RadarFiles/new_label3.mat", "./RadarFiles/new_label3_2.mat";
+    "./RadarFiles/new_label4.mat", "./RadarFiles/new_label4_2.mat";
+    "./RadarFiles/new_label5.mat", "./RadarFiles/new_label5_2.mat";
+    "./RadarFiles/new_label6.mat", "./RadarFiles/new_label6_2.mat";
+    "./RadarFiles/new_label7.mat", "./RadarFiles/new_label7_2.mat";
+    "./RadarFiles/new_label8.mat", "./RadarFiles/new_label8_2.mat";
+    "./RadarFiles/new_label9.mat", "./RadarFiles/new_label9_2.mat";
+    ];
+
+RadarNum = 2;
+
+xxx_1 = []; xxx_2 = [];
+yyy_1 = []; yyy_2 = [];
+new_xxx_1 = [];
+new_xxx_2 = [];
+new_yyy_1 = [];
+new_yyy_2 = [];
+
+addpath Utils
+addpath RadarRelated
+addpath RadarRelated/TrackUtils
+addpath RadarRelated/DataProcessing
+addpath RadarRelated/DataAssociation
+addpath RadarRelated/SignalProcessing
+addpath LocationOptimal
+addpath LocationOptimal/Estimate
+addpath SimulationResults
+addpath SimulationResults/GeometryTransform
+addpath SimulationResults/PlotFunctions
+
+radarInit;
+
+dt  = 0.1;
+
+sdata = {}; sdata2 = [];
+Tracks = {};
+TracksRecord = {};
+ID = 1;
+deltaStep = 5;
+Nz = 2;
+
+for ff = 2:size(file_name, 1)
+    new_xxx_1 = [];
+    new_xxx_2 = [];
+    new_yyy_1 = [];
+    new_yyy_2 = [];
+    for rr = 1:RadarNum
+        load(file_name(ff, rr));
+        fid(rr) = fopen(radarFile(ff, rr),'rb');
+        if fid(rr) == -1
+            error('Main Program: File Not Found')
+        end
+        sdata{rr} = fread(fid(rr),'int16');
+
+        for fff = 1:max(length(xxx_1), length(xxx_2))
+            n_samples = Radar(rr).RadarParam.n_samples;
+            n_chirps  = Radar(rr).RadarParam.n_chirps;
+            n_RX      = Radar(rr).FFTParam.n_RX;
+            n_TX      = Radar(rr).FFTParam.n_TX;
+            
+            sdata2 = sdata{rr}((fff-1) * ...
+                n_samples * ...
+                n_chirps * ...
+                n_RX * ...
+                n_TX * 2 + ...
+                1:fff * n_samples * ...
+                n_chirps * ... 
+                n_RX * ...
+                n_TX * 2);
+            
+            fileSize = size(sdata2, 1);
+            lvds_data = zeros(1, fileSize/2);
+            count = 1;
+            for i=1:4:fileSize-5
+               lvds_data(1,count) =1i* sdata2(i) + sdata2(i+2); 
+               lvds_data(1,count+1) =1i* sdata2(i+1)+sdata2(i+3); 
+               count = count + 2;
+            end
+            lvds_data = reshape(lvds_data, n_TX * ...
+                                n_samples * n_RX, ...
+                                n_chirps);
+    
+            t_lvds_data = [];
+            for tr = 1:n_TX * n_RX
+                t_lvds_data(tr, :, :) = lvds_data((tr - 1) * n_samples+1:tr * n_samples, :);
+            end
+            
+            for ttxx = 1:n_TX
+                data_radar_1 = squeeze(t_lvds_data(ttxx * n_RX - 3, :, :));   %RX1
+                data_radar_2 = squeeze(t_lvds_data(ttxx * n_RX - 2, :, :));   %RX2
+                data_radar_3 = squeeze(t_lvds_data(ttxx * n_RX - 1, :, :));   %RX3
+                data_radar_4 = squeeze(t_lvds_data(ttxx * n_RX, :, :));       %RX4
+    
+                data_radar((ttxx - 1) * n_RX + 1, :, :) = data_radar_1;
+                data_radar((ttxx - 1) * n_RX + 2, :, :) = data_radar_2;
+                data_radar((ttxx - 1) * n_RX + 3, :, :) = data_radar_3;
+                data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
+            end
+            
+            % 执行MTI
+            for cc = 1: n_TX * n_RX
+                data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
+            end
+            
+            % 得到距离像
+            for cc = 1: n_TX * n_RX
+                RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
+            end
+            
+            % 进一步执行 MTD
+            MotionTargetDetection = [];
+            for cc = 1: n_TX * n_RX
+                MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
+                if isempty(MotionTargetDetection), MotionTargetDetection = abs(MotionTargetDetection_(cc, :, :));
+                else MotionTargetDetection = MotionTargetDetection + abs(MotionTargetDetection_(cc, :, :)); end 
+            end
+            
+            % 执行CA-CFAR
+            [detect_map, detect_result, detect_threshold] = ...
+                                                CA_CFAR(squeeze(MotionTargetDetection));
+            res = RangeCentroid(detect_result);
+                                            
+             % 执行角度FFT
+            azMap = [];
+            if Radar(rr).Type == "1843"
+                for cc = 1: n_TX
+                RangeProfiles(1, :, :) = RangeProfile_((cc - 1) * n_RX + 1, :, :);
+                RangeProfiles(2, :, :) = RangeProfile_((cc - 1) * n_RX + 2, :, :);
+                RangeProfiles(3, :, :) = RangeProfile_((cc - 1) * n_RX + 3, :, :);
+                RangeProfiles(4, :, :) = RangeProfile_((cc - 1) * n_RX + 4, :, :);
+                for chirps = 1:size(RangeProfiles, 3)
+                    RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
+                    AngleMap      = fft(RangeProfiles_.', Q, 2);
+                    if isempty(azMap), azMap = abs(AngleMap);
+                    else azMap = azMap + abs(AngleMap); end
+                end
+                clear RangeProfiles
+                end
+            else
+                Antenna_index = [1 4 5 8; 2 3 6 7];
+                for cc = 1: n_TX
+                RangeProfiles(1, :, :) = RangeProfile_(Antenna_index(cc, 1), :, :);
+                RangeProfiles(2, :, :) = RangeProfile_(Antenna_index(cc, 2), :, :);
+                RangeProfiles(3, :, :) = RangeProfile_(Antenna_index(cc, 3), :, :);
+                RangeProfiles(4, :, :) = RangeProfile_(Antenna_index(cc, 4), :, :);
+                for chirps = 1:size(RangeProfiles, 3)
+                    RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
+                    AngleMap      = fft(RangeProfiles_.', Q, 2);
+                    if isempty(azMap), azMap = abs(AngleMap);
+                    else azMap = azMap + abs(AngleMap); end
+                end
+                clear RangeProfiles
+                end
+            end
+    
+            azMap = fftshift(azMap, 2);
+            [range, angle, velo_] = getAngleInfo(res, azMap);
+            angles = Radar(rr).ProcessParam.an_axis_az(angle);
+            ranges = Radar(rr).ProcessParam.range_axis(range);
+
+            if rr == 1
+                ran = norm([xxx_1(fff) yyy_1(fff)]);
+                ang = atan2(xxx_1(fff), yyy_1(fff));
+            else
+                ran = norm([xxx_2(fff) - 3.0 yyy_2(fff)]);
+                ang = atan2(xxx_2(fff) - 3.0, yyy_2(fff)); % For fix the offset
+            end
+            newPos = align_data_using_mesh(azMap, [ran, ang], [ranges angles], ...
+                    Radar(rr).ProcessParam.range_axis, Radar(rr).ProcessParam.an_axis_az, 10000);
+            locX = newPos(1) * sin(newPos(2));
+            locY = newPos(1) * cos(newPos(2));
+            if rr == 1
+                new_xxx_1 = [new_xxx_1 locX];
+                new_yyy_1 = [new_yyy_1 locY];
+            else
+                new_xxx_2 = [new_xxx_2 locX];
+                new_yyy_2 = [new_yyy_2 locY];
+            end
+        end
+        if rr == 1
+            save(new_file_name(ff, rr), "new_xxx_1", "new_yyy_1");
+        else
+            save(new_file_name(ff, rr), "new_xxx_2", "new_yyy_2");
+        end
+        fclose(fid(rr));
+    end
+end

@@ -10,13 +10,13 @@
 % 输出1：最新的跟踪航迹部分 Tracks
 % 输出2：航迹是否观测到新数据
 % 输出3：未能进行观测到的新量测数据
-function [Tracks, observed, empty_measurements] = JPDA(tracks, measurements, ...
+function [Tracks, observed, empty_measurements, observed_track] = JPDA(tracks, measurements, ...
                                     Pd, Pg, g_sigma, ...
                                     lambda, max_measures, max_events)
     if nargin == 2
         Pd = 1;                    %检测概率
         Pg = 0.99;                 %正确量测落入跟踪门内得概率
-        g_sigma = 9.22;            %门限,经验值，与R和Q有关，必须合理设置
+        g_sigma = 2.22;            %门限,经验值，与R和Q有关，必须合理设置
         lambda = 2;                                          
         max_measures = 10000;       % 最大的量测值
         max_events   = 100000;      % 最大事件数目
@@ -24,7 +24,8 @@ function [Tracks, observed, empty_measurements] = JPDA(tracks, measurements, ...
 
     empty_measurements = [];
     observed = [];
-    gamma = lambda*10^(-6);  %每一个单位面积(km^2)内产生lambda个杂波 
+    observed_track = [];     % 观测到的航迹
+    gamma = lambda*10^(-6);  % 每一个单位面积(km^2)内产生lambda个杂波 
     Tracks = tracks;
     target_Num = length(tracks);
     if target_Num <= 0; return; end
@@ -62,6 +63,7 @@ for tt = 1 : num %目标和杂波
             measure_confirm_matrix(num_valid_measurements + 1, 1) = 1; %确认矩阵每一行第一个元素必定为1。
             measure_confirm_matrix(num_valid_measurements + 1, ttt+1) = 1; %如果在门限范围内设置为1
             observed(ttt) = 1;
+            observed_track{ttt}{tt} = measurements(:, tt);
         else
 
         end
@@ -135,7 +137,6 @@ end
 U(num_valid_measurements + 1, :) = 1 - sum(U(1:num_valid_measurements, :));
 
 % Kalman Filter
-
 K = [];
 for ii = 1:target_Num
     P_pre = tracks{ii}.F * tracks{ii}.P * tracks{ii}.F' + tracks{ii}.Q; 

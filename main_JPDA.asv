@@ -1,5 +1,5 @@
-%% RadarÁªºÏ¹¤×÷³ÌÐò
-clear all; close all;
+%% Radarè”åˆå·¥ä½œç¨‹åº
+clear all
 addpath Utils
 addpath RadarRelated
 addpath RadarRelated/TrackUtils
@@ -36,17 +36,17 @@ for rr = 1:Net_RadarNum
         error('Main Program: frame numbers are not unified') 
     end
 end
-% ¶ÁÈ¡Êý¾Ý
+% è¯»å–æ•°æ®
 
-xxx_1 = []; xxx_2 = [];
-yyy_1 = []; yyy_2 = [];
+xxx = [];
+yyy = [];
 singleMeasures = {};
 for xx = 1:fnumber - 1
-    RadarEchos = {}; % Ô­Ê¼»Ø²¨³É·Ö
-    RadarDetection = {}; % ¾àÀë¶àÆÕÀÕ¼ì²â½á¹û
-    RadarMVDRs = {}; % ¾àÀë-½Ç¶ÈÆ×
-    new_data = [];   % Ì½²âÊý¾Ý
-    radar_info = []; % À×´ïÐÅÏ¢
+    RadarEchos = {}; % åŽŸå§‹å›žæ³¢æˆåˆ†
+    RadarDetection = {}; % è·ç¦»å¤šæ™®å‹’æ£€æµ‹ç»“æžœ
+    RadarMVDRs = {}; % è·ç¦»-è§’åº¦è°±
+    new_data = [];   % æŽ¢æµ‹æ•°æ®
+    radar_info = []; % é›·è¾¾ä¿¡æ¯
     for rr = 1:Net_RadarNum
         n_samples = Radar(radar).RadarParam.n_samples;
         n_chirps  = Radar(radar).RadarParam.n_chirps;
@@ -92,17 +92,17 @@ for xx = 1:fnumber - 1
             data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
         end
         
-        % Ö´ÐÐMTI
+        % æ‰§è¡ŒMTI
         for cc = 1: n_TX * n_RX
             data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
         end
         
-        % µÃµ½¾àÀëÏñ
+        % å¾—åˆ°è·ç¦»åƒ
         for cc = 1: n_TX * n_RX
             RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
         end
         
-        % ½øÒ»²½Ö´ÐÐ MTD
+        % è¿›ä¸€æ­¥æ‰§è¡Œ MTD
         MotionTargetDetection = [];
         for cc = 1: n_TX * n_RX
             MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
@@ -114,11 +114,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.velo_axis, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(squeeze(MotionTargetDetection)))
-        title('MTD½á¹û')
-        xlabel('ËÙ¶È(m/s)')
-        ylabel('¾àÀë(m)')
+        title('MTDç»“æžœ')
+        xlabel('é€Ÿåº¦(m/s)')
+        ylabel('è·ç¦»(m)')
         
-        % Ö´ÐÐCA-CFAR
+        % æ‰§è¡ŒCA-CFAR
         [detect_map, detect_result, detect_threshold] = ...
                                             CA_CFAR(squeeze(MotionTargetDetection));
 
@@ -126,11 +126,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.velo_axis, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(detect_map))
-        title('CA-CFAR½á¹û')
-        xlabel('ËÙ¶È(m/s)')
-        ylabel('¾àÀë(m)')
+        title('CA-CFARç»“æžœ')
+        xlabel('é€Ÿåº¦(m/s)')
+        ylabel('è·ç¦»(m)')
                                         
-         % Ö´ÐÐ½Ç¶ÈFFT
+         % æ‰§è¡Œè§’åº¦FFT
         azMap = [];
 
         if Radar(rr).Type == "1843"
@@ -169,11 +169,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.an_axis_az, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(azMap))
-        title('¾àÀë-½Ç¶ÈÆ×')
-        xlabel('½Ç¶È(rad)')
-        ylabel('¾àÀë(m)')
+        title('è·ç¦»-è§’åº¦è°±')
+        xlabel('è§’åº¦(rad)')
+        ylabel('è·ç¦»(m)')
 
-        % ½øÐÐ¶¨Î»
+        % è¿›è¡Œå®šä½
         res = RangeCentroid(detect_result);
         [range, angle, velo_] = getAngleInfo(res, azMap);
 
@@ -187,9 +187,10 @@ for xx = 1:fnumber - 1
             velo = Radar(rr).ProcessParam.velo_axis(fix(velo_ + 1));
             for aaa = 1:length(angle) 
                 angles = Radar(rr).ProcessParam.an_axis_az(angle(aaa));
-                if abs(angles) > Radar(rr).ProcessParam.DisableAngle, continue; end
                 ranges = Radar(rr).ProcessParam.range_axis(range(aaa));
+                
                 radarLoc = Radar(rr).Geometry.Location;
+
                 xxxx = [xxxx ranges .* sin(angles) + radarLoc(1)];
                 yyyy = [yyyy ranges .* cos(angles) + radarLoc(2)];
                 radar_info = [radar_info; Radar(rr).Geometry.Location(1:2) ...
@@ -197,124 +198,41 @@ for xx = 1:fnumber - 1
                 new_data = [new_data; xx * Radar(rr).RadarParam.PRI ...
                 ranges .* sin(angles) + radarLoc(1) ...
                 ranges .* cos(angles) + radarLoc(2) ...
-                velo(aaa) rr];
+                velo(aaa)];
             end
         end
-        % ×ª»»ÎªÊÀ½ç×ø±êÏµ
-        if rr == 1
-            xxx_1 = [xxx_1 xxxx];
-            yyy_1 = [yyy_1 yyyy];
-        else
-            xxx_2 = [xxx_2 xxxx];
-            yyy_2 = [yyy_2 yyyy];
-        end
+        % è½¬æ¢ä¸ºä¸–ç•Œåæ ‡ç³»
+        figure(10003)
+        xxx = [xxx xxxx];
+        yyy = [yyy yyyy];
+        scatter(xxx, yyy, 5, 'filled', 'b');
+        axis([-10 10 -1 20])
     end
     
-    figure(10003)
-    scatter(xxx_1, yyy_1, 5, 'filled', 'b');
-    hold on
-    scatter(xxx_2, yyy_2, 5, 'filled', 'g');
-    axis([-10 10 -1 20])
-    
     if isempty(new_data)
-        if ~isempty(Tracks)
-            Tracks = TrackUpdate(Tracks, zeros(1, length(Tracks)));
-        end
+
     else
-        singleMeasures = RecordRealMeasureInfo(singleMeasures, new_data, ...
-            xx * dt, radar_info);
-        [optiVelo, valid_measure, ValidEstimatedVelo, posiX, posiY, RadarInfo, velo] = ...
-            EstimateTraceVelocity(singleMeasures, Nz, dt);
-        [W, Vpre, En, VpreValid] = VeloPrediction(velo, RadarInfo, posiX, posiY, ...
-            optiVelo, valid_measure, ValidEstimatedVelo, 0.0001, 12, deltaStep, 1000, dt);
+        measures = [new_data(:, 2)';
+                    new_data(:, 2)';
+                    new_data(:, 3)';
+                    zeros([1, length(new_data(:, 2))]);];
 
-        % for ttt = 1:size(Vpre, 2)
-        %     optiVelo(:, end + 1, :) = Vpre(:, ttt, :);
-        % end
-
-        if isempty(Vpre), continue; end
-
-        % get the latest frame
-        LocX = posiX{end}; LocY = posiY{end};
-        Velo = squeeze(Vpre(:, end, :));
-        if size(Velo, 2) == 1, Velo = Velo'; end
-        valid_measure = valid_measure(1:min([length(LocX) length(valid_measure)]));
-
-        % ³õÊ¼»¯º½¼£
         if isempty(Tracks)
-            for tt = 1:length(valid_measure)
-                if valid_measure(tt) > length(LocX), continue; end
-                locX_ = mean(LocX{valid_measure(tt)});
-                locY_ = mean(LocY{valid_measure(tt)});
-                index = find(tt == VpreValid);
-                if ~isempty(index)
-                    velocity = Velo(index, :);
-                else
-                    velocity = [0 0];
-                end
-                if isnan(locX_) || isnan(locY_)
-                    continue; 
-                elseif norm(velocity) > 7.5
-                    Tracks{end + 1} = trackInit([locX_ locY_], [0 0], dt, xx, ID);
-                else 
-                    Tracks{end + 1} = trackInit([locX_ locY_], velocity, dt, xx, ID);
-                end
-                ID = ID + 1;
+            ddTargets = {}; dvTargets = {};
+            for ttt = 1:size(new_data, 1)
+                ddTargets{length(ddTargets) + 1} = new_data(1, 2:3);
+                dvTargets{length(dvTargets) + 1} = new_data(1, 4);
             end
+        
         else
-            measures = [];
-            for tt = 1:length(valid_measure)
-                if valid_measure(tt) > length(LocX), continue; end
-                locX_ = mean(LocX{valid_measure(tt)});
-                locY_ = mean(LocY{valid_measure(tt)});
-                index = find(tt == VpreValid);
-                if ~isempty(index)
-                    velocity = Velo(index, :);
-                else
-                    velocity = [0 0];
-                end
-                if isnan(locX_) || isnan(locY_)
-                   continue; 
-                elseif norm(velocity) > 7.5
-                    measures = [measures; locX_ locY_ 0 0];
-                else 
-                    measures = [measures; locX_ locY_ velocity];
-                end
-            end
-
-            [newTracks, redundantMeasures, observed, observed_track] = ...
-                TraceUpdate(measures, Tracks);
-            % ¸üÐÂº½¼£
-            newTracks = TrackUpdate(newTracks, observed);
-            if ~isempty(redundantMeasures)
-                for ttt = 1:size(redundantMeasures, 1)
-                    location = redundantMeasures(ttt, 1:2);
-                    velocity = redundantMeasures(ttt, 3:4);
-                    if isnan(location(1)) || isnan(location(2)), continue;
-                    elseif norm(velocity) > 7.5
-                        newTracks{end + 1} = trackInit(location, [0 0], dt, xx, ID);
-                    else 
-                        newTracks{end + 1} = trackInit(location, velocity, dt, xx, ID);
-                    end
-                    ID = ID + 1;
-                end
-            end
-            Tracks = newTracks;
+        
         end
-
-        % for tt = 1:length(target)
-        %     targetVelo = [target{tt}.vx(ff * dt) target{tt}.vy(ff * dt)];
-        %     targetLocs = [target{tt}.x target{tt}.y] + ...
-        %             targetVelo * ff * dt;
-        %     fprintf("Target %d, px: %f, py: %f vx: %f vy: %f\n", tt, targetLocs(1), targetLocs(2), ...
-        %         targetVelo(1), targetVelo(2));
-        % end
 
         TrackIndex = 1;
         for tt = 1:ID - 1
             if TrackIndex <= length(Tracks) && Tracks{TrackIndex}.ID == tt
                 TracksRecord{xx}{tt} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) ...
-                    Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type xx]; % ¼ÇÂ¼Tracks
+                    Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % è®°å½•Tracks
                 TrackIndex = TrackIndex + 1;
             else
                 TracksRecord{xx}{tt} = [];
