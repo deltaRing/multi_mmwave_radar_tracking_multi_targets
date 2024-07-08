@@ -10,8 +10,8 @@ addpath ../LocationOptimal/Estimate
 clear all
 warning off
 
-% ²âÊÔÄ£Äâ»·¾³Éú³É
-%% À×´ï²ÎÊý
+% æµ‹è¯•æ¨¡æ‹ŸçŽ¯å¢ƒç”Ÿæˆ
+%% é›·è¾¾å‚æ•°
 radarLoc = [10 10; -10 60; 60 -10];
 radarVelo = [0 0; 0 0; 0 0];
 radarAttitude = [0 0 pi / 4; 0 0 0; 0 0 pi / 2];
@@ -21,7 +21,7 @@ radarQ  = [0.5; 0.5; 0.5];
 radarvQ = [0.005; 0.005; 0.005];
 radarNum = 3;
 
-%% Ä¿±ê²ÎÊý
+%% ç›®æ ‡å‚æ•°
 targetLoc = [100 100; 10 100; 100 10];
 targetVelo = [-3.5 -1; 5 -5; -1 5];
 targetQ = [0.15; 0.15; 0.15];
@@ -44,7 +44,7 @@ for tt = 1:targetNum
         targetQ(tt, :), Nz, targetType(tt));
 end
 
-%% ¶¨ÒåÖ¡ÊýºÍ²½³¤
+%% å®šä¹‰å¸§æ•°å’Œæ­¥é•¿
 frames = 500;
 dt = 0.1;
 deltaStep = 5;
@@ -68,13 +68,14 @@ for ff = 1:frames
     else
         singleMeasures = RecordMeasureInfo(singleMeasures, ff * dt, dTargets, ...
             vTargets, radar);
-        [optiVelo, posiX, posiY, RadarInfo, velo] = EstimateTraceVelocity(singleMeasures, Nz, dt);
-        [W, Vpre, En] = VeloPrediction(velo, RadarInfo, posiX, posiY, ...
-            optiVelo, 0.001, 12, deltaStep, 1000, dt);
+        [optiVelo, valid_measure, ValidEstimatedVelo, posiX, posiY, RadarInfo, velo] = ...
+            EstimateTraceVelocity(singleMeasures, Nz, dt);
+        [W, Vpre, En, VpreValid] = VeloPrediction(velo, RadarInfo, posiX, posiY, ...
+            optiVelo, valid_measure, ValidEstimatedVelo, 0.0001, 12, deltaStep, 1000, dt);
 
-        for ttt = 1:size(Vpre, 2)
-            optiVelo(:, end + 1, :) = Vpre(:, ttt, :);
-        end
+        % for ttt = 1:size(Vpre, 2)
+        %     optiVelo(:, end + 1, :) = Vpre(:, ttt, :);
+        % end
 
         if isempty(Vpre), continue; end
 
@@ -83,35 +84,62 @@ for ff = 1:frames
         Velo = squeeze(Vpre(:, end, :));
         if size(Velo, 2) == 1, Velo = Velo'; end
 
-        % ³õÊ¼»¯º½¼£
+        % åˆå§‹åŒ–èˆªè¿¹
         if isempty(Tracks)
             for tt = 1:length(LocX)
-                locX = mean(LocX{tt});
-                locY = mean(LocY{tt});
-                if isnan(locX) || isnan(locY), continue; end
-                Tracks{end + 1} = trackInit([locX locY], Velo(tt, :), dt, ff, ID);
+                if valid_measure(tt) > length(LocX), continue; end
+                locX_ = mean(LocX{valid_measure(tt)});
+                locY_ = mean(LocY{valid_measure(tt)});
+                index = find(tt == VpreValid);
+                if ~isempty(index)
+                    velocity = Velo(index, :);
+                else
+                    velocity = [0 0];
+                end
+                if isnan(locX_) || isnan(locY_)
+                    continue; 
+                elseif norm(velocity) > 10.0
+                    Tracks{end + 1} = trackInit([locX_ locY_], [0 0], dt, ff, ID);
+                else 
+                    Tracks{end + 1} = trackInit([locX_ locY_], velocity, dt, ff, ID);
+                end
                 ID = ID + 1;
             end
         else
             measures = [];
-            for tt = 1:length(LocX)
-                locX = mean(LocX{tt});
-                locY = mean(LocY{tt});
-                velocity = Velo(tt, :);
-                if isnan(locX) || isnan(locY) || norm(velocity) > 10.0, continue; end
-                measures = [measures; locX locY velocity];
+            for tt = 1:length(valid_measure)
+                if valid_measure(tt) > length(LocX), continue; end
+                locX_ = mean(LocX{valid_measure(tt)});
+                locY_ = mean(LocY{valid_measure(tt)});
+                index = find(tt == VpreValid);
+                if ~isempty(index)
+                    velocity = Velo(index, :);
+                else
+                    velocity = [0 0];
+                end
+                if isnan(locX_) || isnan(locY_)
+                   continue; 
+                elseif norm(velocity) > 10.0
+                    measures = [measures; locX_ locY_ 0 0];
+                else 
+                    measures = [measures; locX_ locY_ velocity];
+                end
             end
 
             [newTracks, redundantMeasures, observed, observed_track] = TraceUpdate(measures, Tracks);
             Error = plotErrorCurve(newTracks, observed_track, 10001, Error, ff);
-            % ¸üÐÂº½¼£
+            % æ›´æ–°èˆªè¿¹
             newTracks = TrackUpdate(newTracks, observed);
             if ~isempty(redundantMeasures)
                 for ttt = 1:size(redundantMeasures, 1)
                     location = redundantMeasures(ttt, 1:2);
                     velocity = redundantMeasures(ttt, 3:4);
-                    if isnan(locX) || isnan(locY), continue; end
-                    newTracks{end + 1} = trackInit(location, velocity, dt, ff, ID);
+                    if isnan(location(1)) || isnan(location(2)), continue;
+                    elseif norm(velocity) > 10.0
+                        newTracks{end + 1} = trackInit(location, [0 0], dt, ff, ID);
+                    else 
+                        newTracks{end + 1} = trackInit(location, velocity, dt, ff, ID);
+                    end
                     ID = ID + 1;
                 end
             end
@@ -130,7 +158,7 @@ for ff = 1:frames
         for tt = 1:ID - 1
             if TrackIndex <= length(Tracks) && Tracks{TrackIndex}.ID == tt
                 TracksRecord{ff}{tt} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) ...
-                    Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % ¼ÇÂ¼Tracks
+                    Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % è®°å½•Tracks
                 TrackIndex = TrackIndex + 1;
             else
                 TracksRecord{ff}{tt} = [];
