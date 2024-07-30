@@ -8,3 +8,5 @@
 运行：testSimulationResultVelocity.m
 testSimulationResult.m
 来得到仿真结果
+
+% 2024 7 30 部分代码有点问题 请等待新版
