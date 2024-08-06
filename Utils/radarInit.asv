@@ -1,18 +1,18 @@
-%% À×´ïÊıÄ¿
+%% é›·è¾¾æ•°ç›®
 Net_RadarNum = 2;
-% À×´ï½á¹¹Ìå
+% é›·è¾¾ç»“æ„ä½“
 GHz  = 1e9;   % GHz
 MHz  = 1e6;   % MHz
-us   = 1e-6;  % Î¢Ãë
-c    = 3.0e8; % ¹âËÙ
+us   = 1e-6;  % å¾®ç§’
+c    = 3.0e8; % å…‰é€Ÿ
 Ksps = 1e6;
-N    = 256;         %¾àÀëÏòFFTµãÊı
-M    = 128;         %¶àÆÕÀÕÏòFFTµãÊı
-Q    = 256;         %½Ç¶ÈFFT
+N    = 256;         %è·ç¦»å‘FFTç‚¹æ•°
+M    = 128;         %å¤šæ™®å‹’å‘FFTç‚¹æ•°
+Q    = 256;         %è§’åº¦FFT
 
 radarType = ["1843", "6843"];
-fileName  = ["RadarFiles/data1/2024-06-20-22-33-00.bin",
-    "RadarFiles/data2/2024-06-20-22-25-08.bin"];
+fileName  = ["RadarFiles/data1/2024-06-20-22-22-06.bin",
+    "RadarFiles/data2/2024-06-20-22-05-28.bin"];
 carryFrequency = [77e9 60e9];
 location = [0 0 0;
             3 0 0];
@@ -20,24 +20,24 @@ angle    = [0 0];
 
 
 for radar = 1:Net_RadarNum
-%% À×´ï²ÎÊı£¨Ê¹ÓÃmmWave StudioÄ¬ÈÏ²ÎÊı£©
+%% é›·è¾¾å‚æ•°ï¼ˆä½¿ç”¨mmWave Studioé»˜è®¤å‚æ•°ï¼‰
     Radar(radar).Type = radarType(radar);
     Radar(radar).Num  = Net_RadarNum;
     Radar(radar).fnumber = 256; % MUST BE UNITED
-    Radar(radar).fname = fileName(radar); % ´¦ÀíµÄÎÄ¼şÃû×Ö
-    Radar(radar).RadarParam.B = 4000*1e6;       %µ÷Æµ´ø¿í
-    Radar(radar).RadarParam.K = 80*1e12;  %µ÷ÆµĞ±ÂÊ
-    Radar(radar).RadarParam.T = Radar(radar).RadarParam.B/Radar(radar).RadarParam.K;         %²ÉÑùÊ±¼ä
-    Radar(radar).RadarParam.Tc = 65e-6;     %chirp×ÜÖÜÆÚ
-    Radar(radar).RadarParam.fs = 12500 * 1e3;       %²ÉÑùÂÊ
-    Radar(radar).RadarParam.f0 = carryFrequency(radar);       %³õÊ¼ÆµÂÊ
-    Radar(radar).RadarParam.lambda = c/Radar(radar).RadarParam.f0;   %À×´ïĞÅºÅ²¨³¤
-    Radar(radar).RadarParam.d = Radar(radar).RadarParam.lambda/2;    %ÌìÏßÕóÁĞ¼ä¾à
-    Radar(radar).RadarParam.n_samples = 256; %²ÉÑùµãÊı/Âö³å
-    Radar(radar).RadarParam.n_chirps=128;   %Ã¿Ö¡Âö³åÊı
+    Radar(radar).fname = fileName(radar); % å¤„ç†çš„æ–‡ä»¶åå­—
+    Radar(radar).RadarParam.B = 4000*1e6;       %è°ƒé¢‘å¸¦å®½
+    Radar(radar).RadarParam.K = 80*1e12;  %è°ƒé¢‘æ–œç‡
+    Radar(radar).RadarParam.T = Radar(radar).RadarParam.B/Radar(radar).RadarParam.K;         %é‡‡æ ·æ—¶é—´
+    Radar(radar).RadarParam.Tc = 65e-6;     %chirpæ€»å‘¨æœŸ
+    Radar(radar).RadarParam.fs = 12500 * 1e3;       %é‡‡æ ·ç‡
+    Radar(radar).RadarParam.f0 = carryFrequency(radar);       %åˆå§‹é¢‘ç‡
+    Radar(radar).RadarParam.lambda = c/Radar(radar).RadarParam.f0;   %é›·è¾¾ä¿¡å·æ³¢é•¿
+    Radar(radar).RadarParam.d = Radar(radar).RadarParam.lambda/2;    %å¤©çº¿é˜µåˆ—é—´è·
+    Radar(radar).RadarParam.n_samples = 256; %é‡‡æ ·ç‚¹æ•°/è„‰å†²
+    Radar(radar).RadarParam.n_chirps=128;   %æ¯å¸§è„‰å†²æ•°
     Radar(radar).RadarParam.PRI = 1e-1;
-    Radar(radar).FFTParam.n_RX=4;        %RXÌìÏßÍ¨µÀÊı
-    Radar(radar).FFTParam.n_TX=2;        %TXÌìÏßÍ¨µÀÊı
+    Radar(radar).FFTParam.n_RX=4;        %RXå¤©çº¿é€šé“æ•°
+    Radar(radar).FFTParam.n_TX=2;        %TXå¤©çº¿é€šé“æ•°
     Radar(radar).ProcessParam.DisableAngle = 69 / 180 * pi; % Ori:69
     Radar(radar).ProcessParam.range_axis = linspace(0, ...
                                 Radar(radar).RadarParam.fs * ...

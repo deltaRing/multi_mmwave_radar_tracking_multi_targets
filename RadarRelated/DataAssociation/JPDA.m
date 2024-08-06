@@ -16,7 +16,7 @@ function [Tracks, observed, empty_measurements, observed_track] = JPDA(tracks, m
     if nargin == 2
         Pd = 1;                    %检测概率
         Pg = 0.99;                 %正确量测落入跟踪门内得概率
-        g_sigma = 2.22;            %门限,经验值，与R和Q有关，必须合理设置
+        g_sigma = 5.0;            %门限,经验值，与R和Q有关，必须合理设置
         lambda = 2;                                          
         max_measures = 10000;       % 最大的量测值
         max_events   = 100000;      % 最大事件数目
@@ -30,7 +30,7 @@ function [Tracks, observed, empty_measurements, observed_track] = JPDA(tracks, m
     target_Num = length(tracks);
     if target_Num <= 0; return; end
 
-    nz = tracks{1}.Nz^2; % 得到维度信息
+    nz = tracks{1}.Nz * 2; % 得到维度信息
     S = zeros(nz, nz, target_Num); % 新息协方差矩阵
     Z_pre = zeros(nz, target_Num); % 观测值预测
     X_pre = zeros(nz, target_Num); % 状态值预测
@@ -57,7 +57,8 @@ for tt = 1 : num %目标和杂波
     flag = 0;   %观测值是否有效
     for ttt = 1 : target_Num %目标，也可以认为是存在的航迹。
         delta_measurement = measurements(:, tt) - Z_pre(:, ttt);  %测量值和预测值的误差值。
-        delta_measurement_cov = delta_measurement' / S(:, :, ttt) * delta_measurement; %通过每个目标测量噪声的协方差矩阵，得到y1(杂波或者目标)与Z_predic(目标)相似程度。                      
+        delta_measurement_cov = delta_measurement' / S(:, :, ttt) * delta_measurement;
+        delta_measurement_cov = delta_measurement' * S(:, :, ttt) * delta_measurement; %通过每个目标测量噪声的协方差矩阵，得到y1(杂波或者目标)与Z_predic(目标)相似程度。                      
         if delta_measurement_cov <= g_sigma                                                    
             flag = 1;
             measure_confirm_matrix(num_valid_measurements + 1, 1) = 1; %确认矩阵每一行第一个元素必定为1。

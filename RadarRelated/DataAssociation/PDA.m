@@ -1,7 +1,7 @@
 function [Tracks, observed, empty_measurements, observed_track] = ...
     PDA(tracks, measurements, Range)
 
-    if nargin == 2, Range = 1.5; end
+    if nargin == 2, Range = 2.5; end
 
     empty_measurements = [];
     observed = zeros([1, length(tracks)]);

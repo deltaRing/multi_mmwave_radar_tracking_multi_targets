@@ -1,5 +1,6 @@
-%% RadarÁªºÏ¹¤×÷³ÌĞò
-clear all
+% æ ‡æ³¨æ•°æ®
+%% Radarè”åˆå·¥ä½œç¨‹åº
+clear all; close all;
 addpath Utils
 addpath RadarRelated
 addpath RadarRelated/TrackUtils
@@ -36,18 +37,13 @@ for rr = 1:Net_RadarNum
         error('Main Program: frame numbers are not unified') 
     end
 end
-% ¶ÁÈ¡Êı¾İ
+% è¯»å–æ•°æ®
 
-xxx = [];
-yyy = [];
+xxx_1 = []; xxx_2 = [];
+yyy_1 = []; yyy_2 = [];
 singleMeasures = {};
-for xx = 1:fnumber - 1
-    RadarEchos = {}; % Ô­Ê¼»Ø²¨³É·Ö
-    RadarDetection = {}; % ¾àÀë¶àÆÕÀÕ¼ì²â½á¹û
-    RadarMVDRs = {}; % ¾àÀë-½Ç¶ÈÆ×
-    new_data = [];   % Ì½²âÊı¾İ
-    radar_info = []; % À×´ïĞÅÏ¢
-    for rr = 1:Net_RadarNum
+for rr = 2:Net_RadarNum
+    for xx = 1:fnumber - 1
         n_samples = Radar(radar).RadarParam.n_samples;
         n_chirps  = Radar(radar).RadarParam.n_chirps;
         n_RX      = Radar(radar).FFTParam.n_RX;
@@ -92,45 +88,29 @@ for xx = 1:fnumber - 1
             data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
         end
         
-        % Ö´ĞĞMTI
+        % æ‰§è¡ŒMTI
         for cc = 1: n_TX * n_RX
             data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
         end
         
-        % µÃµ½¾àÀëÏñ
+        % å¾—åˆ°è·ç¦»åƒ
         for cc = 1: n_TX * n_RX
             RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
         end
         
-        % ½øÒ»²½Ö´ĞĞ MTD
+        % è¿›ä¸€æ­¥æ‰§è¡Œ MTD
         MotionTargetDetection = [];
         for cc = 1: n_TX * n_RX
             MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
             if isempty(MotionTargetDetection), MotionTargetDetection = abs(MotionTargetDetection_(cc, :, :));
             else MotionTargetDetection = MotionTargetDetection + abs(MotionTargetDetection_(cc, :, :)); end 
         end
-
-        figure(10000)
-        imagesc(Radar(rr).ProcessParam.velo_axis, ...
-            Radar(rr).ProcessParam.range_axis, ...
-            abs(squeeze(MotionTargetDetection)))
-        title('MTD½á¹û')
-        xlabel('ËÙ¶È(m/s)')
-        ylabel('¾àÀë(m)')
         
-        % Ö´ĞĞCA-CFAR
+        % æ‰§è¡ŒCA-CFAR
         [detect_map, detect_result, detect_threshold] = ...
                                             CA_CFAR(squeeze(MotionTargetDetection));
-
-        figure(10001)
-        imagesc(Radar(rr).ProcessParam.velo_axis, ...
-            Radar(rr).ProcessParam.range_axis, ...
-            abs(detect_map))
-        title('CA-CFAR½á¹û')
-        xlabel('ËÙ¶È(m/s)')
-        ylabel('¾àÀë(m)')
                                         
-         % Ö´ĞĞ½Ç¶ÈFFT
+         % æ‰§è¡Œè§’åº¦FFT
         azMap = [];
 
         if Radar(rr).Type == "1843"
@@ -157,107 +137,42 @@ for xx = 1:fnumber - 1
             for chirps = 1:size(RangeProfiles, 3)
                 RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
                 AngleMap      = fft(RangeProfiles_.', Q, 2);
-                if isempty(azMap), azMap = abs(AngleMap);
-                else azMap = azMap + abs(AngleMap); end
+                if isempty(azMap)
+                    azMap = abs(AngleMap);
+                else
+                    azMap = azMap + abs(AngleMap);
+                end
             end
             clear RangeProfiles
             end
         end
 
         azMap = fftshift(azMap, 2);
-        figure(10002)
-        imagesc(Radar(rr).ProcessParam.an_axis_az, ...
+        [a, r] = getMouseClickCoordinates(azMap, ...
             Radar(rr).ProcessParam.range_axis, ...
-            abs(azMap))
-        title('¾àÀë-½Ç¶ÈÆ×')
-        xlabel('½Ç¶È(rad)')
-        ylabel('¾àÀë(m)')
+            Radar(rr).ProcessParam.an_axis_az);
 
-        % ½øĞĞ¶¨Î»
-        res = RangeCentroid(detect_result);
-        [range, angle, velo_] = getAngleInfo(res, azMap);
-
-        if isempty(range)
+        if isempty(r)
             xxxx = [];
             yyyy = [];
             velo = [];
         else
             xxxx = [];
             yyyy = [];
-            velo = Radar(rr).ProcessParam.velo_axis(fix(velo_ + 1));
-            for aaa = 1:length(angle) 
-                angles = Radar(rr).ProcessParam.an_axis_az(angle(aaa));
-                if abs(angles) > (69 / 180 * pi), continue; end
-                ranges = Radar(rr).ProcessParam.range_axis(range(aaa));
+            for aaa = 1:length(r) 
                 radarLoc = Radar(rr).Geometry.Location;
-                xxxx = [xxxx ranges .* sin(angles) + radarLoc(1)];
-                yyyy = [yyyy ranges .* cos(angles) + radarLoc(2)];
-                radar_info = [radar_info; Radar(rr).Geometry.Location(1:2) ...
-                    Radar(rr).Geometry.Angle];
-                new_data = [new_data; xx * Radar(rr).RadarParam.PRI ...
-                ranges .* sin(angles) + radarLoc(1) ...
-                ranges .* cos(angles) + radarLoc(2) ...
-                velo(aaa)];
+
+                xxxx = [xxxx r .* sin(a) + radarLoc(1)];
+                yyyy = [yyyy r .* cos(a) + radarLoc(2)];
             end
         end
-        % ×ª»»ÎªÊÀ½ç×ø±êÏµ
-        figure(10003)
-        xxx = [xxx xxxx];
-        yyy = [yyy yyyy];
-        scatter(xxx, yyy, 5, 'filled', 'b');
-        axis([-10 10 -1 20])
-    end
-    
-    if isempty(new_data)
-
-    else
-
-        if isempty(Tracks)
-            ddTargets = {}; dvTargets = {};
-            for ttt = 1:size(new_data, 1)
-                ddTargets{length(ddTargets) + 1} = new_data(1, 2:3);
-                dvTargets{length(dvTargets) + 1} = new_data(1, 4);
-            end
-            [Tracks, ID] = TrackInitFunc(ddTargets, dvTargets, ...
-                                                xx, dt, ID, Tracks);
+        % è½¬æ¢ä¸ºä¸–ç•Œåæ ‡ç³»
+        if rr == 1
+            xxx_1{xx} = xxxx;
+            yyy_1{xx} = yyyy;
         else
-            measures = [new_data(:, 2)';
-                    0 * new_data(:, 4)';
-                    new_data(:, 3)';
-                    0 * new_data(:, 4)'];
-            [newTracks, observed, empty_measurements, observed_data] = PDA(Tracks, measures);
-
-            % ¸üĞÂº½¼£
-            newTracks = TrackUpdate(newTracks, observed);
-            
-            % Èç¹ûÓĞĞÂº½¼£
-            if ~isempty(empty_measurements)
-                ddTargets = {}; dvTargets = {};
-                for rrr = 1:size(empty_measurements, 2)
-                    if size(empty_measurements, 1) == 4
-                        ddTargets{rrr} = [empty_measurements(1, rrr) empty_measurements(3, rrr)];
-                        dvTargets{rrr} = [empty_measurements(2, rrr) empty_measurements(4, rrr)];
-                    elseif size(empty_measurements, 1) == 6
-                        ddTargets{rrr} = [empty_measurements(1, rrr) empty_measurements(3, rrr) empty_measurements(5, rrr)];
-                        dvTargets{rrr} = [empty_measurements(2, rrr) empty_measurements(4, rrr) empty_measurements(6, rrr)];
-                    end
-                end
-                [newTracks, ID] = TrackInitFunc(ddTargets, dvTargets, ...
-                                                xx, dt, ID, newTracks);
-            end
-            Tracks = newTracks;
-
-            TrackIndex = 1;
-            for tt = 1:ID - 1
-                if TrackIndex <= length(Tracks) && Tracks{TrackIndex}.ID == tt
-                    TracksRecord{xx}{tt} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) ...
-                        Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % ¼ÇÂ¼Tracks
-                    TrackIndex = TrackIndex + 1;
-                else
-                    TracksRecord{xx}{tt} = [];
-                end
-            end
-            plotRadarTracks(TracksRecord, ID, 10003);
+            xxx_2{xx} = xxxx;
+            yyy_2{xx} = yyyy;
         end
     end
 end

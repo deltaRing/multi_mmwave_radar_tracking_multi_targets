@@ -15,10 +15,12 @@ addpath SimulationResults/PlotFunctions
 radarInit;
 warning off
 
+lamb = 0.25;
 fid = []; 
 sdata = {};  
 fnumber = Radar(1).fnumber;
 dt  = 0.1;
+vv = [];
 
 Tracks = {};
 TracksRecord = {};
@@ -225,7 +227,7 @@ for xx = 1:fnumber - 1
             xx * dt, radar_info);
         [optiVelo, valid_measure, ValidEstimatedVelo, posiX, posiY, RadarInfo, velo] = ...
             EstimateTraceVelocity(singleMeasures, Nz, dt);
-        [W, Vpre, En, VpreValid] = VeloPrediction(velo, RadarInfo, posiX, posiY, ...
+        [W, Vpre, En, VpreValid] = VeloPrediction2(velo, RadarInfo, posiX, posiY, ...
             optiVelo, valid_measure, ValidEstimatedVelo, 0.0001, 12, deltaStep, 1000, dt);
 
         % for ttt = 1:size(Vpre, 2)
@@ -255,9 +257,9 @@ for xx = 1:fnumber - 1
                 if isnan(locX_) || isnan(locY_)
                     continue; 
                 elseif norm(velocity) > 7.5
-                    Tracks{end + 1} = trackInit([locX_ locY_], [0 0], dt, xx, ID);
+                    Tracks{end + 1} = trackInit([locX_ locY_], [0 0], dt, xx, ID, lamb);
                 else 
-                    Tracks{end + 1} = trackInit([locX_ locY_], velocity, dt, xx, ID);
+                    Tracks{end + 1} = trackInit([locX_ locY_], velocity, dt, xx, ID, lamb);
                 end
                 ID = ID + 1;
             end
@@ -273,6 +275,7 @@ for xx = 1:fnumber - 1
                 else
                     velocity = [0 0];
                 end
+                vv = [vv; velocity];
                 if isnan(locX_) || isnan(locY_)
                    continue; 
                 elseif norm(velocity) > 7.5
@@ -292,9 +295,9 @@ for xx = 1:fnumber - 1
                     velocity = redundantMeasures(ttt, 3:4);
                     if isnan(location(1)) || isnan(location(2)), continue;
                     elseif norm(velocity) > 7.5
-                        newTracks{end + 1} = trackInit(location, [0 0], dt, xx, ID);
+                        newTracks{end + 1} = trackInit(location, [0 0], dt, xx, ID, lamb);
                     else 
-                        newTracks{end + 1} = trackInit(location, velocity, dt, xx, ID);
+                        newTracks{end + 1} = trackInit(location, velocity, dt, xx, ID, lamb);
                     end
                     ID = ID + 1;
                 end

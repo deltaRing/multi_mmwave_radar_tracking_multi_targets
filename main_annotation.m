@@ -1,5 +1,5 @@
-% æ ‡æ³¨æ•°æ®
-%% Radarè”åˆå·¥ä½œç¨‹åº
+% ??æ³¨æ?°æ??
+%% Radar????å·¥ä?ç¨?åº?
 clear all; close all;
 addpath Utils
 addpath RadarRelated
@@ -37,12 +37,12 @@ for rr = 1:Net_RadarNum
         error('Main Program: frame numbers are not unified') 
     end
 end
-% è¯»å–æ•°æ®
+% è¯»å???°æ??
 
 xxx_1 = []; xxx_2 = [];
 yyy_1 = []; yyy_2 = [];
 singleMeasures = {};
-for rr = Net_RadarNum:-1:1
+for rr = 1:Net_RadarNum
     for xx = 1:fnumber - 1
         n_samples = Radar(radar).RadarParam.n_samples;
         n_chirps  = Radar(radar).RadarParam.n_chirps;
@@ -88,17 +88,17 @@ for rr = Net_RadarNum:-1:1
             data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
         end
         
-        % æ‰§è¡ŒMTI
+        % ?§è?MTI
         for cc = 1: n_TX * n_RX
             data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
         end
         
-        % å¾—åˆ°è·ç¦»åƒ
+        % å¾??°è?ç¦»å??
         for cc = 1: n_TX * n_RX
             RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
         end
         
-        % è¿›ä¸€æ­¥æ‰§è¡Œ MTD
+        % è¿?ä¸?æ­¥æ?§è? MTD
         MotionTargetDetection = [];
         for cc = 1: n_TX * n_RX
             MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
@@ -106,11 +106,11 @@ for rr = Net_RadarNum:-1:1
             else MotionTargetDetection = MotionTargetDetection + abs(MotionTargetDetection_(cc, :, :)); end 
         end
         
-        % æ‰§è¡ŒCA-CFAR
+        % ?§è?CA-CFAR
         [detect_map, detect_result, detect_threshold] = ...
                                             CA_CFAR(squeeze(MotionTargetDetection));
                                         
-         % æ‰§è¡Œè§’åº¦FFT
+         % ?§è?è§?åº?FFT
         azMap = [];
 
         if Radar(rr).Type == "1843"
@@ -137,8 +137,11 @@ for rr = Net_RadarNum:-1:1
             for chirps = 1:size(RangeProfiles, 3)
                 RangeProfiles_ = squeeze(RangeProfiles(:, :, chirps));
                 AngleMap      = fft(RangeProfiles_.', Q, 2);
-                if isempty(azMap), azMap = abs(AngleMap);
-                else azMap = azMap + abs(AngleMap); end
+                if isempty(azMap)
+                    azMap = abs(AngleMap);
+                else
+                    azMap = azMap + abs(AngleMap);
+                end
             end
             clear RangeProfiles
             end
@@ -159,23 +162,26 @@ for rr = Net_RadarNum:-1:1
             for aaa = 1:length(r) 
                 radarLoc = Radar(rr).Geometry.Location;
 
-                xxxx = [xxxx r .* sin(a) + radarLoc(1)];
-                yyyy = [yyyy r .* cos(a) + radarLoc(2)];
+                xxxx = [xxxx r(aaa) .* sin(a(aaa)) + radarLoc(1)];
+                yyyy = [yyyy r(aaa) .* cos(a(aaa)) + radarLoc(2)];
             end
         end
-        % è½¬æ¢ä¸ºä¸–ç•Œåæ ‡ç³»
+        % è½???ä¸ºä???????ç³?
         if rr == 1
-            xxx_1 = [xxx_1 xxxx];
-            yyy_1 = [yyy_1 yyyy];
+            if ~isempty(xxxx)
+            xxx_1(xx) = xxxx;
+            yyy_1(xx) = yyyy;
+            end
         else
-            xxx_2 = [xxx_2 xxxx];
-            yyy_2 = [yyy_2 yyyy];
+            if ~isempty(xxxx)
+            xxx_2(xx) = xxxx;
+            yyy_2(xx) = yyyy;
+            end
         end
-        figure(10003)
-        scatter(xxx_1, yyy_1, 5, 'filled', 'b');
-        hold on
-        scatter(xxx_2, yyy_2, 5, 'filled', 'g');
-        axis([-10 10 -1 20])
+%         figure(10003)
+%         scatter(xxx_1, yyy_1, 5, 'filled', 'b');
+%         hold on
+%         scatter(xxx_2, yyy_2, 5, 'filled', 'g');
+%         axis([-10 10 -1 20])
     end
-    return
 end

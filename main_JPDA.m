@@ -1,4 +1,4 @@
-%% Radarè”åˆå·¥ä½œç¨‹åº
+%% RadarÁªºÏ¹¤×÷³ÌĞò
 clear all
 addpath Utils
 addpath RadarRelated
@@ -36,17 +36,17 @@ for rr = 1:Net_RadarNum
         error('Main Program: frame numbers are not unified') 
     end
 end
-% è¯»å–æ•°æ®
+% ¶ÁÈ¡Êı¾İ
 
 xxx = [];
 yyy = [];
 singleMeasures = {};
 for xx = 1:fnumber - 1
-    RadarEchos = {}; % åŸå§‹å›æ³¢æˆåˆ†
-    RadarDetection = {}; % è·ç¦»å¤šæ™®å‹’æ£€æµ‹ç»“æœ
-    RadarMVDRs = {}; % è·ç¦»-è§’åº¦è°±
-    new_data = [];   % æ¢æµ‹æ•°æ®
-    radar_info = []; % é›·è¾¾ä¿¡æ¯
+    RadarEchos = {}; % Ô­Ê¼»Ø²¨³É·Ö
+    RadarDetection = {}; % ¾àÀë¶àÆÕÀÕ¼ì²â½á¹û
+    RadarMVDRs = {}; % ¾àÀë-½Ç¶ÈÆ×
+    new_data = [];   % Ì½²âÊı¾İ
+    radar_info = []; % À×´ïĞÅÏ¢
     for rr = 1:Net_RadarNum
         n_samples = Radar(radar).RadarParam.n_samples;
         n_chirps  = Radar(radar).RadarParam.n_chirps;
@@ -92,17 +92,17 @@ for xx = 1:fnumber - 1
             data_radar((ttxx - 1) * n_RX + 4, :, :) = data_radar_4;
         end
         
-        % æ‰§è¡ŒMTI
+        % Ö´ĞĞMTI
         for cc = 1: n_TX * n_RX
             data_radar_(cc, :, :) = MTI(squeeze(data_radar(cc, :, :)), 40);
         end
         
-        % å¾—åˆ°è·ç¦»åƒ
+        % µÃµ½¾àÀëÏñ
         for cc = 1: n_TX * n_RX
             RangeProfile_(cc, :, :) = PulseCompression(squeeze(data_radar_(cc, :, :)), N);
         end
         
-        % è¿›ä¸€æ­¥æ‰§è¡Œ MTD
+        % ½øÒ»²½Ö´ĞĞ MTD
         MotionTargetDetection = [];
         for cc = 1: n_TX * n_RX
             MotionTargetDetection_(cc, :, :) = MTD(squeeze(RangeProfile_(cc, :, :)), M);
@@ -114,11 +114,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.velo_axis, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(squeeze(MotionTargetDetection)))
-        title('MTDç»“æœ')
-        xlabel('é€Ÿåº¦(m/s)')
-        ylabel('è·ç¦»(m)')
+        title('MTD½á¹û')
+        xlabel('ËÙ¶È(m/s)')
+        ylabel('¾àÀë(m)')
         
-        % æ‰§è¡ŒCA-CFAR
+        % Ö´ĞĞCA-CFAR
         [detect_map, detect_result, detect_threshold] = ...
                                             CA_CFAR(squeeze(MotionTargetDetection));
 
@@ -126,11 +126,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.velo_axis, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(detect_map))
-        title('CA-CFARç»“æœ')
-        xlabel('é€Ÿåº¦(m/s)')
-        ylabel('è·ç¦»(m)')
+        title('CA-CFAR½á¹û')
+        xlabel('ËÙ¶È(m/s)')
+        ylabel('¾àÀë(m)')
                                         
-         % æ‰§è¡Œè§’åº¦FFT
+         % Ö´ĞĞ½Ç¶ÈFFT
         azMap = [];
 
         if Radar(rr).Type == "1843"
@@ -169,11 +169,11 @@ for xx = 1:fnumber - 1
         imagesc(Radar(rr).ProcessParam.an_axis_az, ...
             Radar(rr).ProcessParam.range_axis, ...
             abs(azMap))
-        title('è·ç¦»-è§’åº¦è°±')
-        xlabel('è§’åº¦(rad)')
-        ylabel('è·ç¦»(m)')
+        title('¾àÀë-½Ç¶ÈÆ×')
+        xlabel('½Ç¶È(rad)')
+        ylabel('¾àÀë(m)')
 
-        % è¿›è¡Œå®šä½
+        % ½øĞĞ¶¨Î»
         res = RangeCentroid(detect_result);
         [range, angle, velo_] = getAngleInfo(res, azMap);
 
@@ -200,7 +200,7 @@ for xx = 1:fnumber - 1
                 velo(aaa)];
             end
         end
-        % è½¬æ¢ä¸ºä¸–ç•Œåæ ‡ç³»
+        % ×ª»»ÎªÊÀ½ç×ø±êÏµ
         figure(10003)
         xxx = [xxx xxxx];
         yyy = [yyy yyyy];
@@ -222,15 +222,15 @@ for xx = 1:fnumber - 1
                                                 xx, dt, ID, Tracks);
         else
             measures = [new_data(:, 2)';
-                    randn() * new_data(:, 4)';
+                    0 * new_data(:, 4)';
                     new_data(:, 3)';
-                    randn() * new_data(:, 4)'];
+                    0 * new_data(:, 4)'];
             [newTracks, observed, empty_measurements, observed_data] = JPDA(Tracks, measures);
 
-            % æ›´æ–°èˆªè¿¹
+            % ¸üĞÂº½¼£
             newTracks = TrackUpdate(newTracks, observed);
             
-            % å¦‚æœæœ‰æ–°èˆªè¿¹
+            % Èç¹ûÓĞĞÂº½¼£
             if ~isempty(empty_measurements)
                 ddTargets = {}; dvTargets = {};
                 for rrr = 1:size(empty_measurements, 2)
@@ -251,7 +251,7 @@ for xx = 1:fnumber - 1
             for tt = 1:ID - 1
                 if TrackIndex <= length(Tracks) && Tracks{TrackIndex}.ID == tt
                     TracksRecord{xx}{tt} = [Tracks{TrackIndex}.ID Tracks{TrackIndex}.X(1) ...
-                        Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % è®°å½•Tracks
+                        Tracks{TrackIndex}.X(3) Tracks{TrackIndex}.Type]; % ¼ÇÂ¼Tracks
                     TrackIndex = TrackIndex + 1;
                 else
                     TracksRecord{xx}{tt} = [];

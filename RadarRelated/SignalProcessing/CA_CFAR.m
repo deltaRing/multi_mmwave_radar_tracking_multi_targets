@@ -10,8 +10,8 @@
 % detect_threshold： 检测阈值
 function [detect_map, detect_result, detect_threshold] = CA_CFAR(map, R, P, Pfa)
     if nargin == 1
-        R = 12;       % 参考单元设置为 5
-        P = 8;       % 保护单元设置为 3
+        R = 8;       % 参考单元设置为 5
+        P = 6;        % 保护单元设置为 3
         Pfa = 2.5e-2; % 虚警率 
         % R = 12;       % 参考单元设置为 5
         % P = 8;       % 保护单元设置为 3

@@ -1,28 +1,28 @@
-% å‰å‘é€Ÿåº¦é¢„æµ‹
-% è¾“å…¥1ï¼šæµ‹é‡å¤šæ™®å‹’ TarNum x Frame x Measures
-% è¾“å…¥2
-% è¾“å…¥3
-% è¾“å…¥4
-% è¾“å…¥5ï¼šä¼˜åŒ–åé€Ÿåº¦å‘é‡ TarNum x Frame - Delta x Nz
-% è¾“å…¥6ï¼šæ”¶æ•›å› å­ mu
-% è¾“å…¥7ï¼šM æ»¤æ³¢å™¨æƒé‡å¤§å°
-% è¾“å…¥8ï¼šdeltaStep 
-% è¾“å…¥9ï¼š
-% è¾“å‡º1ï¼šæ»¤æ³¢å™¨æƒé‡ W
-% è¾“å‡º2ï¼šæ»¤æ³¢å™¨è¾“å‡º Y
-% è¾“å‡º3ï¼šè¯¯å·®åºåˆ— En
+% Ç°ÏòËÙ¶ÈÔ¤²â
+% ÊäÈë1£º²âÁ¿¶àÆÕÀÕ TarNum x Frame x Measures
+% ÊäÈë2
+% ÊäÈë3
+% ÊäÈë4
+% ÊäÈë5£ºÓÅ»¯ºóËÙ¶ÈÏòÁ¿ TarNum x Frame - Delta x Nz
+% ÊäÈë6£ºÊÕÁ²Òò×Ó mu
+% ÊäÈë7£ºM ÂË²¨Æ÷È¨ÖØ´óĞ¡
+% ÊäÈë8£ºdeltaStep 
+% ÊäÈë9£º
+% Êä³ö1£ºÂË²¨Æ÷È¨ÖØ W
+% Êä³ö2£ºÂË²¨Æ÷Êä³ö Y
+% Êä³ö3£ºÎó²îĞòÁĞ En
 function [W, Vpre, En, VpreValid] = VeloPrediction(VeloVec, RadarVec, PosiX, PosiY, ...
     dVOptimal, dVvalid, dVveloItem, mu, M, deltaStep, iternum, dt)
     Nz = 2;
-    sigma = 1e-8;
+    sigma = 1e-4;
     itr  = size(dVOptimal, 2);
     W = []; Vpre = []; En = []; VpreValid = [];
 
     if itr < M + deltaStep, return; end
 
     tarNum = length(dVvalid);
-    En   = zeros(tarNum, Nz, itr);   % åˆå§‹åŒ–è¯¯å·®ä¿¡å·
-    W    = zeros(tarNum, Nz, M, itr);    % åˆå§‹åŒ–æƒå€¼çŸ©é˜µï¼Œæ¯ä¸€åˆ—ä»£è¡¨ä¸€æ¬¡è¿­ä»£
+    En   = zeros(tarNum, Nz, itr);   % ³õÊ¼»¯Îó²îĞÅºÅ
+    W    = zeros(tarNum, Nz, M, itr);    % ³õÊ¼»¯È¨Öµ¾ØÕó£¬Ã¿Ò»ÁĞ´ú±íÒ»´Îµü´ú
     Vpre = [];
     
     for tt = 1:tarNum
@@ -33,10 +33,10 @@ function [W, Vpre, En, VpreValid] = VeloPrediction(VeloVec, RadarVec, PosiX, Pos
             for kk = M:itr - 1
                 if ~dVveloItem(kk, rtt), continue, end
                 x = dVOptimal(tt, kk:-1:kk-M + 1, dd);
-                y = x * squeeze(W(tt, dd, :, kk-1));              % æ»¤æ³¢å™¨çš„è¾“å‡º
-                dn = dVOptimal(tt, kk + 1, dd);          % ä¸‹ä¸€æ—¶åˆ»çš„é€Ÿåº¦å€¼
-                en(tt, dd, kk) = dn - y;                 % ç¬¬kæ¬¡è¿­ä»£çš„è¯¯å·®
-                W(tt, dd, :, kk) = squeeze(W(tt, dd, :, kk-1))+2*mu*en(tt, dd, kk)*x';     % æ»¤æ³¢å™¨æƒå€¼è®¡ç®—çš„è¿­ä»£å¼
+                y = x * squeeze(W(tt, dd, :, kk-1));              % ÂË²¨Æ÷µÄÊä³ö
+                dn = dVOptimal(tt, kk + 1, dd);          % ÏÂÒ»Ê±¿ÌµÄËÙ¶ÈÖµ
+                en(tt, dd, kk) = dn - y;                 % µÚk´Îµü´úµÄÎó²î
+                W(tt, dd, :, kk) = squeeze(W(tt, dd, :, kk-1))+2*mu*en(tt, dd, kk)*x';     % ÂË²¨Æ÷È¨Öµ¼ÆËãµÄµü´úÊ½
             end
 
             for kk = 1:deltaStep 
@@ -50,48 +50,58 @@ function [W, Vpre, En, VpreValid] = VeloPrediction(VeloVec, RadarVec, PosiX, Pos
             end
         end
 
-        % é«˜æ–¯ç‰›é¡¿æ³• 
+        % ¸ßË¹Å£¶Ù·¨ 
         for kk = 1:deltaStep
             V1 = Vpre(tt, kk, 1); V2 = Vpre(tt, kk, 2);
             if length(VeloVec{itr + kk}) < rtt, continue; end
             VeloMeasured = VeloVec{itr + kk}{rtt};
             if isempty(VeloMeasured), continue, end
             radarAngle = -RadarVec{itr + kk}{tt}(:, 3);
+            
+            err = inf; minV1 = inf; minV2 = inf;
             for it = 1:iternum
                 cuAngle = atan2(V2, V1); cuNorm = norm([V1 V2]);
                 VeloComputed = cuNorm * ...
                     cos(cuAngle + radarAngle);
-                % è¯¯å·®è®¡ç®—
+                % Îó²î¼ÆËã
                 error = VeloMeasured - VeloComputed;
+                if norm(err) > norm(error)
+                    err = error;
+                    minV1 = V1;
+                    minV2 = V2;
+                end
                 if norm(error) < sigma, break; end
                 Jf = [2 * V1 / cuNorm * cos(cuAngle + radarAngle) + ...
                       V2 / cuNorm * sin(cuAngle + radarAngle) 2 * V2 / cuNorm * ...
                       cos(cuAngle + radarAngle) - V1 / cuNorm * sin(cuAngle + radarAngle)];
                 delta_info = inv(Jf' * Jf) * Jf' * error;
     
-                if norm(delta_info) < sigma, break; end
-                    V1 = V1 + delta_info(1);
-                    V2 = V2 + delta_info(2);
+                % if norm(delta_info) < sigma, break; end
+                V1 = V1 + delta_info(1);
+                V2 = V2 + delta_info(2);
             end
+            V1 = minV1; V2 = minV2;
             
             if itr + kk + 1 >= length(PosiX)
-                % å¦‚æœå°±æ˜¯å½“å‰å€¼ ä¸è¿›è¡Œå¯é æ€§åˆ¤æ–­ åªè¿›è¡Œé€Ÿåº¦åˆ¤æ–­
-                ERR_ORIN = sum(norm(squeeze(Vpre(tt, kk, :))) * ...
-                    cos(atan2(Vpre(tt, kk, 2), Vpre(tt, kk, 1)) + radarAngle));
-                ERR_OPTI = sum(norm([V1 V2]) * cos(atan2(V2, V1) + radarAngle));
+                % Èç¹û¾ÍÊÇµ±Ç°Öµ ²»½øĞĞ¿É¿¿ĞÔÅĞ¶Ï Ö»½øĞĞËÙ¶ÈÅĞ¶Ï
+                ERR_ORIN = sum(abs(norm(squeeze(Vpre(tt, kk, :))) * ...
+                    cos(atan2(Vpre(tt, kk, 2), Vpre(tt, kk, 1)) + radarAngle) - VeloMeasured));
+                ERR_OPTI = sum(abs(norm([V1 V2]) * cos(atan2(V2, V1) + radarAngle) - VeloMeasured));
                 if ERR_OPTI < ERR_ORIN, Vpre(tt, kk, 1) = V1; Vpre(tt, kk, 2) = V2; end
             else
                 ERR_ORIN = sum(abs(norm(squeeze(Vpre(tt, kk, :))) * ...
-                    cos(atan2(Vpre(tt, kk, 2), Vpre(tt, kk, 1)) + radarAngle)));
-                ERR_OPTI = sum(abs(norm([V1 V2]) * cos(atan2(V2, V1) + radarAngle)));
-                % è¯„ä¼°å½“å‰é€Ÿåº¦çš„å¯é æ€§
+                    cos(atan2(Vpre(tt, kk, 2), Vpre(tt, kk, 1)) + radarAngle) - VeloMeasured));
+                ERR_OPTI = sum(abs(norm([V1 V2]) * cos(atan2(V2, V1) + radarAngle) - VeloMeasured));
+                % ÆÀ¹Àµ±Ç°ËÙ¶ÈµÄ¿É¿¿ĞÔ
                 if length(PosiX{itr + kk}) >= rtt && length(PosiX{itr + kk + 1}) >= rtt
                     X = mean(PosiX{itr + kk}{rtt}); Y = mean(PosiY{itr + kk}{rtt});
                     EX = mean(PosiX{itr + kk + 1}{rtt}); EY = mean(PosiY{itr + kk + 1}{rtt});
                     MSE_ORIN = norm([EX EY] - ([X Y] + squeeze(Vpre(tt, kk, :)) * dt));
                     MSE_OPTI = norm([EX EY] - ([X Y] + [V1 V2] * dt));
-                    if MSE_OPTI + ERR_OPTI < MSE_ORIN + ERR_ORIN
+                    if 2 * MSE_OPTI + ERR_OPTI < MSE_ORIN + ERR_ORIN
                         Vpre(tt, kk, 1) = V1; Vpre(tt, kk, 2) = V2; 
+                    else
+                        1;
                     end
                 else
                     if ERR_OPTI < ERR_ORIN, Vpre(tt, kk, 1) = V1; Vpre(tt, kk, 2) = V2; end

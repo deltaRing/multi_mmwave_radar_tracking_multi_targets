@@ -31,7 +31,7 @@ function [optimized_measures, valid_measures, ValidEstimatedVelo, posiX, posiY, 
         
     end
     
-    [optimized_measures, valid_measures, ValidEstimatedVelo] = VelocityEstimate(velo, posiX, posiY, radarInfo, dt);
+    [optimized_measures, valid_measures, ValidEstimatedVelo] = VelocityEstimate2(velo, posiX, posiY, radarInfo, dt);
 end
 
 function timeIndex = getFrameTimeIndex(singleMeasures)

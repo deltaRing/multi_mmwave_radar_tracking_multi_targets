@@ -20,7 +20,7 @@ function [Track] = TrackUpdate(Tracks, observed)
             end
         else
             Tracks{tt}.LossFrame = Tracks{tt}.LossFrame + 1; % 丢失帧数自增
-            Tracks{tt}.X         = Tracks{tt}.F * Tracks{tt}.X;
+%             Tracks{tt}.X         = Tracks{tt}.F * Tracks{tt}.X;
             if Tracks{tt}.LossFrame >= Tracks{tt}.LossFrameMax
                 delete_index = [delete_index tt]; % 加入删除队列中
                 Tracks{tt}.Type = 2; % 转为丢失航迹

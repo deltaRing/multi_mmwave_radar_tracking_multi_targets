@@ -1,10 +1,10 @@
-% èˆªè¿¹æ›´æ–°
-% measures:æµ‹é‡å€¼ï¼ˆx y (z) vx vy (vz)ï¼‰
-% Tracks:å·²å»ºç«‹çš„èˆªè¿¹
-% KFenable:å¡å°”æ›¼æ»¤æ³¢æ¿€æ´»
+% ??è¿¹æ?´æ??
+% measures:æµ????¼ï?x y (z) vx vy (vz)ï¼?
+% Tracks:å·²å»ºç«?????è¿?
+% KFenable:?¡å??¼æ»¤æ³¢æ?æ´?
 function [tracks, redundantMeasures, observed, observed_track] = TraceUpdate(measures, Tracks, SimilarRange, KFenable)
     if nargin == 2
-        SimilarRange = 2.0;
+        SimilarRange = 2.75;
         KFenable = 1;
     end
     tracks = []; redundantMeasures = []; observed_track = {}; observed = [];
@@ -22,7 +22,9 @@ function [tracks, redundantMeasures, observed, observed_track] = TraceUpdate(mea
             if observedMeasure(mm), continue; end
             xxx = measures(mm, 1); yyy = measures(mm, 2);
             vxx  = measures(mm, 3); vyy  = measures(mm, 4);
-            deltaInfo = [xxx - xx vxx - vx yyy - yy vyy - vy]';
+            deltaInfo = [xxx - xx Tracks{tt}.Lambda * (vxx - vx) ...
+                yyy - yy Tracks{tt}.Lambda * (vyy - vy)]'; % for main.m
+%             deltaInfo = [xxx - xx (vxx - vx) yyy - yy (vyy - vy)]'; % for others
             distance  = sqrt(deltaInfo' * inv(Pcov) * deltaInfo);
             observed_track{tt}{mm} = [xxx vxx yyy vyy]';
             if distance < SimilarRange

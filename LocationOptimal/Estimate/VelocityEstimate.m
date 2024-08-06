@@ -1,14 +1,14 @@
-% é€Ÿåº¦ä¼°è®¡å­å‡½æ•°
-% è¾“å…¥1ï¼šè·å–çš„é€Ÿåº¦å­å‘é‡ Frame x Observes x Tar
-% è¾“å…¥2ï¼šè·å–çš„Xä½ç½®å­å‘é‡ Frame x Observes x Tar
-% è¾“å…¥3ï¼šè·å–çš„Yä½ç½®å­å‘é‡ Frame x Observes x Tar
-% è¾“å…¥4ï¼šå­é›·è¾¾å‘é‡ Frame x Observes x 3 (PosiX PosiY radarYaw)
-% è¾“å…¥5ï¼šå•ä½æ­¥è¿›æ—¶é—´ dt
-% å¯é€‰è¾“å…¥1ï¼š
-% å¯é€‰è¾“å…¥2ï¼š
-% å¯é€‰è¾“å…¥3ï¼š
-% å¯é€‰è¾“å…¥4ï¼š
-% è¾“å‡º1ï¼šç²¾ç¡®ä¼°è®¡çš„é€Ÿåº¦å‘é‡
+% ËÙ¶È¹À¼Æ×Óº¯Êı
+% ÊäÈë1£º»ñÈ¡µÄËÙ¶È×ÓÏòÁ¿ Frame x Observes x Tar
+% ÊäÈë2£º»ñÈ¡µÄXÎ»ÖÃ×ÓÏòÁ¿ Frame x Observes x Tar
+% ÊäÈë3£º»ñÈ¡µÄYÎ»ÖÃ×ÓÏòÁ¿ Frame x Observes x Tar
+% ÊäÈë4£º×ÓÀ×´ïÏòÁ¿ Frame x Observes x 3 (PosiX PosiY radarYaw)
+% ÊäÈë5£ºµ¥Î»²½½øÊ±¼ä dt
+% ¿ÉÑ¡ÊäÈë1£º
+% ¿ÉÑ¡ÊäÈë2£º
+% ¿ÉÑ¡ÊäÈë3£º
+% ¿ÉÑ¡ÊäÈë4£º
+% Êä³ö1£º¾«È·¹À¼ÆµÄËÙ¶ÈÏòÁ¿
 function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVec, PosiX, PosiY, ...
                             RadarVec, dt, deltaStep, minimalStep, ...
                             iternum, sigma)
@@ -16,7 +16,7 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
         deltaStep = 5;
         minimalStep = 10; % Origin:10
         iternum = 1000;
-        sigma = 1e-8;
+        sigma = 1e-4;
     end
 
     frameLength = length(VeloVec);
@@ -47,7 +47,7 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
                 VeloMatrix{ff} = [];
                 PosiMatrix(ff, :) = zeros(1, 2);
                 continue;
-            end % æ— è¯¥ç›®æ ‡
+            end % ÎŞ¸ÃÄ¿±ê
             if isempty(PosiX{ff}{tt}) || isempty(VeloVec{ff}{tt})
                 if ff == 1 || isempty(VeloMatrix{ff - 1})
                     VeloMatrix{ff} = [];
@@ -68,7 +68,7 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
         end
 
         Velox = []; Veloy = [];
-
+        deltaMatrixs = [];
         for ttt = 1:frameLength - deltaStep
             deltaMatrix = [];
             validTimes = [];
@@ -81,24 +81,28 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
                 deltaMatrix(length(validTimes) + 1, :) = PosiMatrix(dd + ttt, :) - PosiMatrix(ttt, :);
                 validTimes = [validTimes; dd];
             end
+            deltaMatrixs{ttt} = PosiMatrix(dd + ttt, :) - PosiMatrix(ttt, :);
             if length(validTimes) < 1
                 ValidEstimatedVelo(ttt, tt) = 0;
                 continue;
             end
             ValidEstimatedVelo(ttt, tt) = 1;
             obMatrixTime = ObsvTimeMatrix(validTimes);
-            % æœ€å°äºŒä¹˜æ³•
+            % ×îĞ¡¶ş³Ë·¨
             estimateVeloX = inv(obMatrixTime' * obMatrixTime) * obMatrixTime' * deltaMatrix(:, 1);
             estimateVeloY = inv(obMatrixTime' * obMatrixTime) * obMatrixTime' * deltaMatrix(:, 2);
             Velox = [Velox estimateVeloX(1)];
             Veloy = [Veloy estimateVeloY(1)];
         end
         Velo_ = [Velox; Veloy]';
-
-        % é«˜æ–¯ç‰›é¡¿æ³• 
+        
+        % ¸ßË¹Å£¶Ù·¨ 
         for ff = 1:length(Velox)
             if ~ValidEstimatedVelo(ff, tt), continue; end
             if isempty(RadarVec{ff}{tt}), continue; end
+
+            err = inf;
+            minV1 = inf; minV2 = inf;
             V1 = Velo_(ff, 1); V2 = Velo_(ff, 2);
             VeloMeasured = VeloVec{ff}{tt};
             radarAngle = -RadarVec{ff}{tt}(:, 3);
@@ -106,8 +110,13 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
                 cuAngle = atan2(V2, V1); cuNorm = norm([V1 V2]);
                 VeloComputed = cuNorm * ...
                     cos(cuAngle + radarAngle);
-                % è¯¯å·®è®¡ç®—
+                % Îó²î¼ÆËã
                 error = VeloMeasured - VeloComputed;
+                if norm(err) > norm(error)
+                    err = error;
+                    minV1 = V1;
+                    minV2 = V2;
+                end
                 if norm(error) < sigma
                     break
                 end
@@ -115,6 +124,7 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
                 Jf = [2 * V1 / cuNorm * cos(cuAngle + radarAngle) + ...
                      V2 / cuNorm * sin(cuAngle + radarAngle) 2 * V2 / cuNorm * ...
                     cos(cuAngle + radarAngle) - V1 / cuNorm * sin(cuAngle + radarAngle)];
+             
                 delta_info = inv(Jf' * Jf) * Jf' * error;
 
                 if norm(delta_info) < sigma
@@ -123,21 +133,25 @@ function [VeloEstimated, ValidTar, ValidEstimatedVelo] = VelocityEstimate(VeloVe
                 V1 = V1 + delta_info(1);
                 V2 = V2 + delta_info(2);
             end
-
+            
+            V1 = minV1; V2 = minV2;
             ERR_ORIN = sum(abs(norm([Velo_(ff, :)]) * ...
-                    cos(atan2(Velo_(ff, 2), Velo_(ff, 1)) + radarAngle)));
-            ERR_OPTI = sum(abs(norm([V1 V2]) * cos(atan2(V2, V1) + radarAngle)));
-            % è¯„ä¼°å½“å‰é€Ÿåº¦çš„å¯é æ€§
+                    cos(atan2(Velo_(ff, 2), Velo_(ff, 1)) + radarAngle) - VeloVec{ff}{tt}));
+            ERR_OPTI = sum(abs(norm([V1 V2]) * ...
+                cos(atan2(V2, V1) + radarAngle) - VeloVec{ff}{tt}));
+            % ÆÀ¹Àµ±Ç°ËÙ¶ÈµÄ¿É¿¿ĞÔ
             if length(PosiX{ff}) >= tt && length(PosiX{ff + 1}) >= tt
                 X = mean(PosiX{ff}{tt}); Y = mean(PosiY{ff}{tt});
                 EX = mean(PosiX{ff + 1}{tt}); EY = mean(PosiY{ff + 1}{tt});
                 MSE_ORIN = norm([EX EY] - ([X Y] + Velo_(ff, :) * dt));
                 MSE_OPTI = norm([EX EY] - ([X Y] + [V1 V2] * dt));
-                if MSE_OPTI + ERR_OPTI < MSE_ORIN + ERR_ORIN
+                if 2 * MSE_OPTI + ERR_OPTI < MSE_ORIN + ERR_ORIN
                     Velo_(ff, 1) = V1; Velo_(ff, 2) = V2;
+                else
+                    1; 
                 end
             else
-                if MSE_OPTI < MSE_ORIN
+                if ERR_OPTI < ERR_ORIN
                     Velo_(ff, 1) = V1; Velo_(ff, 2) = V2;
                 end
             end

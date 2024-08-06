@@ -5,7 +5,10 @@
 % 输入4：起始帧标号 FrameIndex
 % 输入5：航迹ID
 % 输出1：航迹结构体 Tracks
-function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID)
+function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID, lambda)
+    if nargin == 5
+        lambda = 1;
+    end
     Tracks.t        = t;
     Tracks.InitPosi = Posi;
     Tracks.InitVelo = Velo;
@@ -16,6 +19,7 @@ function Tracks = trackInit(Posi, Velo, t, FrameIndex, ID)
     Tracks.ConfirmMax   = 5;  % 至少需要观测多少次数 Single:5
     Tracks.Type = 0;          % 0：临时航迹 1：确认航迹 2：删除航迹
     Tracks.ID   = ID;
+    Tracks.Lambda = lambda;
     if length(Posi) == 2
         Tracks.Nz = 2; % 维度
         Tracks.X = [Posi(1) Velo(1) Posi(2) Velo(2)]';
