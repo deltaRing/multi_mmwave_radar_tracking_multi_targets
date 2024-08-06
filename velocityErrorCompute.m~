@@ -1,0 +1,11 @@
+% velocity Error compute
+load velo2.mat
+radarInit
+
+errVelo = [];
+for vv = 1:length(velo_opt)
+    if isempty(v{vv}) || isempty(velo_opt{vv})
+        continue;
+    end
+   
+end
